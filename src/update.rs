@@ -5,7 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bpaf::Bpaf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use git_cliff_core::{
@@ -34,17 +34,25 @@ pub struct Update {
     repo: Repository,
     config: Config,
     timestamp: i64,
+    commits_range: String,
 }
 
 impl Update {
     pub fn new(options: UpdateOptions) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
-        let root_path = metadata.workspace_root.clone().into_std_path_buf();
-        let repo = Repository::init(root_path)?;
-        let config_path = metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG);
-        let config = Config::parse(&config_path)?;
+        let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
+        let config = {
+            let config_path = metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG);
+            Config::parse(&config_path)?
+        };
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-        Ok(Self { options, metadata, repo, config, timestamp })
+        let commits_range = {
+            let tags =
+                repo.tags(&config.git.tag_pattern, config.git.topo_order.unwrap_or(false))?;
+            let last_tag = tags.last().context("Last commit not found")?.0;
+            format!("{}..HEAD", last_tag)
+        };
+        Ok(Self { options, metadata, repo, config, timestamp, commits_range })
     }
 
     pub fn run(self) -> Result<()> {
@@ -73,9 +81,10 @@ impl Update {
 
     fn generate_changelog_for_package(&self, package: &Package) -> Result<()> {
         let package_path = package.manifest_path.as_std_path().parent().unwrap();
+        let commits = self.get_commits_for_package(package_path)?;
         let release = Release {
             version: Some(format!("v{}", self.version())),
-            commits: self.get_commits_for_package(package_path)?,
+            commits,
             commit_id: None,
             timestamp: self.timestamp,
             previous: None,
@@ -93,7 +102,7 @@ impl Update {
         let include_path = glob::Pattern::new(&format!("{include_path}/**"))?;
         let commits = self
             .repo
-            .commits(Some("1e9c0bc..HEAD".into()), Some(vec![include_path]), None)?
+            .commits(Some(self.commits_range.clone()), Some(vec![include_path]), None)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
