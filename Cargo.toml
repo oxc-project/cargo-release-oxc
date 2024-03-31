@@ -1,6 +1,6 @@
 [package]
 name = "release-oxc"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
 description = "Oxc release management"
 authors = ["Boshen <boshenc@gmail.com>"]
