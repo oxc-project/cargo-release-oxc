@@ -1,22 +1,19 @@
-use std::process::ExitCode;
+mod changelog;
+mod publish;
 
 use bpaf::Bpaf;
 
+pub use self::{
+    changelog::{changelog_options, Changelog, ChangelogOptions},
+    publish::{publish_options, Publish, PublishOptions},
+};
+
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options("release-oxc"))]
-pub struct ReleaseOptions {}
+pub enum ReleaseCommand {
+    #[bpaf(command)]
+    Changelog(#[bpaf(external(changelog_options))] ChangelogOptions),
 
-pub struct Releaser {
-    options: ReleaseOptions,
-}
-
-impl Releaser {
-    pub fn new(options: ReleaseOptions) -> Self {
-        Self { options }
-    }
-
-    #[must_use]
-    pub fn run(self) -> ExitCode {
-        ExitCode::SUCCESS
-    }
+    #[bpaf(command)]
+    Publish(#[bpaf(external(publish_options))] PublishOptions),
 }
