@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
+    str::FromStr,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -11,22 +12,21 @@ use git_cliff_core::{
     changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
     DEFAULT_CONFIG,
 };
+use semver::Version;
+use toml_edit::{DocumentMut, Formatted, Value};
 
 #[derive(Debug, Clone, Bpaf)]
 pub struct UpdateOptions {
-    #[bpaf(argument("tag"), guard(validate_tag, TAG_ERROR_MESSAGE))]
-    tag: String,
+    #[bpaf(argument::<String>("version"), parse(parse_version))]
+    version: Version,
 
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
 }
 
-#[allow(clippy::ptr_arg)]
-fn validate_tag(tag: &String) -> bool {
-    tag.starts_with('v')
+fn parse_version(version: String) -> Result<Version, semver::Error> {
+    Version::parse(&version)
 }
-
-const TAG_ERROR_MESSAGE: &str = "Tag must starts with v";
 
 pub struct Update {
     options: UpdateOptions,
@@ -38,29 +38,43 @@ pub struct Update {
 
 impl Update {
     pub fn new(options: UpdateOptions) -> Result<Self> {
-        assert!(options.tag.starts_with('v'));
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let root_path = metadata.workspace_root.clone().into_std_path_buf();
         let repo = Repository::init(root_path)?;
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         let config_path = metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG);
         let config = Config::parse(&config_path)?;
-        Ok(Self { options, metadata, repo, timestamp, config })
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        Ok(Self { options, metadata, repo, config, timestamp })
     }
 
     pub fn run(self) -> Result<()> {
         // `publish.is_none()` means `publish = true`.
-        let packages = self.metadata.packages.iter().filter(|p| p.publish.is_none());
-        for package in packages {
+        let packages = self
+            .metadata
+            .workspace_packages()
+            .into_iter()
+            .filter(|p| p.publish.is_none())
+            .collect::<Vec<_>>();
+
+        for package in &packages {
             self.generate_changelog_for_package(package)?;
         }
+        self.update_cargo_toml_version_for_workspace(&packages)?;
+        for package in &packages {
+            self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
+        }
+
         Ok(())
+    }
+
+    fn version(&self) -> String {
+        self.options.version.to_string()
     }
 
     fn generate_changelog_for_package(&self, package: &Package) -> Result<()> {
         let package_path = package.manifest_path.as_std_path().parent().unwrap();
         let release = Release {
-            version: Some(self.options.tag.clone()),
+            version: Some(format!("v{}", self.version())),
             commits: self.get_commits_for_package(package_path)?,
             commit_id: None,
             timestamp: self.timestamp,
@@ -92,5 +106,51 @@ impl Update {
         let mut out = File::create(&changelog_path)?;
         changelog.prepend(prev_changelog_string, &mut out)?;
         Ok(())
+    }
+
+    fn update_toml(manifest_path: &Path, cb: impl FnOnce(&mut DocumentMut)) -> Result<()> {
+        let manifest = fs::read_to_string(manifest_path)?;
+        let mut manifest = DocumentMut::from_str(&manifest)?;
+        cb(&mut manifest);
+        let serialized = manifest.to_string();
+        fs::write(manifest_path, serialized)?;
+        Ok(())
+    }
+
+    fn update_cargo_toml_version_for_workspace(&self, packages: &[&Package]) -> Result<()> {
+        let manifest_path = self.metadata.workspace_root.as_std_path().join("Cargo.toml");
+        Self::update_toml(&manifest_path, |manifest| {
+            let Some(table) = manifest
+                .get_mut("workspace")
+                .and_then(|item| item.as_table_mut())
+                .and_then(|table| table.get_mut("dependencies"))
+                .and_then(|item| item.as_table_mut())
+            else {
+                return;
+            };
+            for package in packages {
+                if let Some(version) = table
+                    .get_mut(&package.name)
+                    .and_then(|item| item.as_inline_table_mut())
+                    .and_then(|item| item.get_mut("version"))
+                {
+                    *version = Value::String(Formatted::new(self.version()));
+                }
+            }
+        })
+    }
+
+    fn update_cargo_toml_version_for_package(&self, manifest_path: &Path) -> Result<()> {
+        Self::update_toml(manifest_path, |manifest| {
+            let Some(version) = manifest
+                .get_mut("package")
+                .and_then(|item| item.as_table_mut())
+                .and_then(|table| table.get_mut("version"))
+                .and_then(|item| item.as_value_mut())
+            else {
+                return;
+            };
+            *version = Value::String(Formatted::new(self.version()));
+        })
     }
 }
