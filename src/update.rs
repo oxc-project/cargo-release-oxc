@@ -8,12 +8,12 @@ use anyhow::Result;
 use bpaf::Bpaf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use git_cliff_core::{
-    changelog::Changelog as GitCliffChangelog, commit::Commit, config::Config, release::Release,
-    repo::Repository, DEFAULT_CONFIG,
+    changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
+    DEFAULT_CONFIG,
 };
 
 #[derive(Debug, Clone, Bpaf)]
-pub struct ChangelogOptions {
+pub struct UpdateOptions {
     #[bpaf(argument("tag"), guard(validate_tag, TAG_ERROR_MESSAGE))]
     tag: String,
 
@@ -28,17 +28,16 @@ fn validate_tag(tag: &String) -> bool {
 
 const TAG_ERROR_MESSAGE: &str = "Tag must starts with v";
 
-#[allow(unused)]
-pub struct Changelog {
-    options: ChangelogOptions,
+pub struct Update {
+    options: UpdateOptions,
     metadata: Metadata,
     repo: Repository,
     config: Config,
     timestamp: i64,
 }
 
-impl Changelog {
-    pub fn new(options: ChangelogOptions) -> Result<Self> {
+impl Update {
+    pub fn new(options: UpdateOptions) -> Result<Self> {
         assert!(options.tag.starts_with('v'));
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let root_path = metadata.workspace_root.clone().into_std_path_buf();
@@ -67,7 +66,7 @@ impl Changelog {
             timestamp: self.timestamp,
             previous: None,
         };
-        let changelog = GitCliffChangelog::new(vec![release], &self.config)?;
+        let changelog = Changelog::new(vec![release], &self.config)?;
         self.save_changelog(package_path, changelog)?;
         Ok(())
     }
@@ -87,7 +86,7 @@ impl Changelog {
         Ok(commits)
     }
 
-    fn save_changelog(&self, package_path: &Path, changelog: GitCliffChangelog) -> Result<()> {
+    fn save_changelog(&self, package_path: &Path, changelog: Changelog) -> Result<()> {
         let changelog_path = package_path.join("CHANGELOG.md");
         let prev_changelog_string = fs::read_to_string(&changelog_path).unwrap_or_default();
         let mut out = File::create(&changelog_path)?;

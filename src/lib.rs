@@ -1,18 +1,21 @@
-mod changelog;
 mod publish;
+mod update;
 
 use bpaf::Bpaf;
 
 pub use self::{
-    changelog::{changelog_options, Changelog, ChangelogOptions},
     publish::{publish_options, Publish, PublishOptions},
+    update::{update_options, Update, UpdateOptions},
 };
 
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options("release-oxc"))]
 pub enum ReleaseCommand {
+    /// Update the repository:
+    /// * generate CHANGELOG.md for all published crates.
+    /// * bump versions for all published crates.
     #[bpaf(command)]
-    Changelog(#[bpaf(external(changelog_options))] ChangelogOptions),
+    Update(#[bpaf(external(update_options))] UpdateOptions),
 
     #[bpaf(command)]
     Publish(#[bpaf(external(publish_options))] PublishOptions),
