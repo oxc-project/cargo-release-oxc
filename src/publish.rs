@@ -1,5 +1,4 @@
-use std::process::ExitCode;
-
+use anyhow::Result;
 use bpaf::Bpaf;
 
 #[derive(Debug, Clone, Bpaf)]
@@ -15,8 +14,7 @@ impl Publish {
         Self { options }
     }
 
-    #[must_use]
-    pub fn run(self) -> ExitCode {
-        ExitCode::SUCCESS
+    pub fn run(self) -> Result<()> {
+        Ok(())
     }
 }
