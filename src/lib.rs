@@ -11,9 +11,7 @@ pub use self::{
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options("release-oxc"))]
 pub enum ReleaseCommand {
-    /// Update the repository:
-    /// * generate CHANGELOG.md for all published crates.
-    /// * bump versions for all published crates.
+    /// Generate CHANGELOG.md and bump versions for all published crates
     #[bpaf(command)]
     Update(#[bpaf(external(update_options))] UpdateOptions),
 
