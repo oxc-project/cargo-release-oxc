@@ -41,10 +41,7 @@ impl Update {
     pub fn new(options: UpdateOptions) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
-        let config = {
-            let config_path = metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG);
-            Config::parse(&config_path)?
-        };
+        let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
         let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         let commits_range = {
             let tags =
@@ -72,6 +69,39 @@ impl Update {
             self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
         }
 
+        Ok(())
+    }
+
+    /// Regenerate the changelogs. Please change main.rs to use this.
+    #[allow(unused)]
+    pub fn regenerate_changelogs(options: UpdateOptions) -> Result<()> {
+        let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
+        let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
+        let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
+        let tags = repo
+            .tags(&config.git.tag_pattern, config.git.topo_order.unwrap_or(false))?
+            .into_iter()
+            .collect::<Vec<_>>();
+        for pair in tags.windows(2) {
+            let from = &pair[0];
+            let to = &pair[1];
+            let options = UpdateOptions {
+                version: Version::parse(to.1.trim_start_matches("crates_v")).unwrap(),
+                ..options.clone()
+            };
+            let commits_range = format!("{}..{}", from.1, to.1);
+            let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
+            let timestamp = repo.find_commit(to.0.clone()).unwrap().time().seconds();
+            let update = Self {
+                options,
+                metadata: metadata.clone(),
+                repo,
+                config: config.clone(),
+                timestamp,
+                commits_range,
+            };
+            update.run()?;
+        }
         Ok(())
     }
 
