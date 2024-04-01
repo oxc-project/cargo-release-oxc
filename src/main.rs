@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use release_oxc::{release_command, Publish, ReleaseCommand, Update};
+use cargo_release_oxc::{release_command, Publish, ReleaseCommand, Update};
 
 fn main() -> Result<()> {
     let command = release_command().fallback_to_usage().run();
