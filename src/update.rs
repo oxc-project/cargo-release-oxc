@@ -73,7 +73,6 @@ impl Update {
     }
 
     /// Regenerate the changelogs. Please change main.rs to use this.
-    #[allow(unused)]
     pub fn regenerate_changelogs(&self) -> Result<()> {
         for package in self.get_packages() {
             let package_path = package.manifest_path.as_std_path().parent().unwrap();

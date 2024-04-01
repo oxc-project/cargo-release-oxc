@@ -15,6 +15,10 @@ pub enum ReleaseCommand {
     #[bpaf(command)]
     Update(#[bpaf(external(update_options))] UpdateOptions),
 
+    /// Regenerate CHANGELOG.md.
+    #[bpaf(command)]
+    RegenerateChangelogs(#[bpaf(external(update_options))] UpdateOptions),
+
     #[bpaf(command)]
     Publish(#[bpaf(external(publish_options))] PublishOptions),
 }
