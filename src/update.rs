@@ -15,6 +15,8 @@ use git_cliff_core::{
 use semver::Version;
 use toml_edit::{DocumentMut, Formatted, Value};
 
+const CHANGELOG_NAME: &str = "CHANGELOG.md";
+
 #[derive(Debug, Clone, Bpaf)]
 pub struct UpdateOptions {
     #[bpaf(argument::<String>("version"), parse(parse_version))]
@@ -33,8 +35,7 @@ pub struct Update {
     metadata: Metadata,
     repo: Repository,
     config: Config,
-    timestamp: i64,
-    commits_range: String,
+    tags: Vec<(String, String)>, // pair = (sha, tag)
 }
 
 impl Update {
@@ -42,25 +43,15 @@ impl Update {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
         let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
-        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-        let commits_range = {
-            let tags =
-                repo.tags(&config.git.tag_pattern, config.git.topo_order.unwrap_or(false))?;
-            let last_tag = tags.last().context("Last commit not found")?.0;
-            format!("{}..HEAD", last_tag)
-        };
-        Ok(Self { options, metadata, repo, config, timestamp, commits_range })
+        let tags = repo
+            .tags(&config.git.tag_pattern, config.git.topo_order.unwrap_or(false))?
+            .into_iter()
+            .collect::<Vec<_>>();
+        Ok(Self { options, metadata, repo, config, tags })
     }
 
     pub fn run(self) -> Result<()> {
-        // `publish.is_none()` means `publish = true`.
-        let packages = self
-            .metadata
-            .workspace_packages()
-            .into_iter()
-            .filter(|p| p.publish.is_none())
-            .collect::<Vec<_>>();
-
+        let packages = self.get_packages();
         for package in &packages {
             self.generate_changelog_for_package(package)?;
         }
@@ -72,59 +63,55 @@ impl Update {
         Ok(())
     }
 
-    /// Regenerate the changelogs. Please change main.rs to use this.
-    #[allow(unused)]
-    pub fn regenerate_changelogs(options: UpdateOptions) -> Result<()> {
-        let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
-        let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
-        let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
-        let tags = repo
-            .tags(&config.git.tag_pattern, config.git.topo_order.unwrap_or(false))?
-            .into_iter()
-            .collect::<Vec<_>>();
-        for pair in tags.windows(2) {
-            let from = &pair[0];
-            let to = &pair[1];
-            let options = UpdateOptions {
-                version: Version::parse(to.1.trim_start_matches("crates_v")).unwrap(),
-                ..options.clone()
-            };
-            let commits_range = format!("{}..{}", from.1, to.1);
-            let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
-            let timestamp = repo.find_commit(to.0.clone()).unwrap().time().seconds();
-            let update = Self {
-                options,
-                metadata: metadata.clone(),
-                repo,
-                config: config.clone(),
-                timestamp,
-                commits_range,
-            };
-            update.run()?;
-        }
-        Ok(())
+    fn get_packages(&self) -> Vec<&Package> {
+        // `publish.is_none()` means `publish = true`.
+        self.metadata.workspace_packages().into_iter().filter(|p| p.publish.is_none()).collect()
     }
 
     fn version(&self) -> String {
         self.options.version.to_string()
     }
 
+    /// Regenerate the changelogs. Please change main.rs to use this.
+    #[allow(unused)]
+    pub fn regenerate_changelogs(&self) -> Result<()> {
+        for package in self.get_packages() {
+            let package_path = package.manifest_path.as_std_path().parent().unwrap();
+            let mut releases = vec![];
+            for pair in self.tags.windows(2) {
+                // pair = (sha, tag)
+                let from = &pair[0];
+                let to = &pair[1];
+                let commits_range = format!("{}..{}", from.1, to.1);
+                let commits = self.get_commits_for_package(package_path, commits_range)?;
+                let release = self.get_release(commits, &to.1, Some(&to.0));
+                releases.push(release);
+            }
+            let changelog = Changelog::new(releases, &self.config)?;
+            let changelog_path = package_path.join(CHANGELOG_NAME);
+            let mut out = File::create(&changelog_path)?;
+            changelog.generate(&mut out)?;
+        }
+        Ok(())
+    }
+
     fn generate_changelog_for_package(&self, package: &Package) -> Result<()> {
         let package_path = package.manifest_path.as_std_path().parent().unwrap();
-        let commits = self.get_commits_for_package(package_path)?;
-        let release = Release {
-            version: Some(format!("v{}", self.version())),
-            commits,
-            commit_id: None,
-            timestamp: self.timestamp,
-            previous: None,
-        };
+        let last_tag = self.tags.last().context("Last commit not found")?.0.clone();
+        let commits_range = format!("{}..HEAD", last_tag);
+        let commits = self.get_commits_for_package(package_path, commits_range)?;
+        let tag = format!("v{}", self.version());
+        let release = self.get_release(commits, &tag, None);
         let changelog = Changelog::new(vec![release], &self.config)?;
         self.save_changelog(package_path, changelog)?;
         Ok(())
     }
 
-    fn get_commits_for_package(&self, package_path: &Path) -> Result<Vec<Commit>> {
+    fn get_commits_for_package(
+        &self,
+        package_path: &Path,
+        commits_range: String,
+    ) -> Result<Vec<Commit>> {
         let include_path = package_path
             .strip_prefix(self.metadata.workspace_root.as_std_path())
             .unwrap()
@@ -132,15 +119,29 @@ impl Update {
         let include_path = glob::Pattern::new(&format!("{include_path}/**"))?;
         let commits = self
             .repo
-            .commits(Some(self.commits_range.clone()), Some(vec![include_path]), None)?
+            .commits(Some(commits_range), Some(vec![include_path]), None)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
         Ok(commits)
     }
 
+    fn get_release<'a>(
+        &self,
+        commits: Vec<Commit<'a>>,
+        tag: &str,
+        sha: Option<&str>,
+    ) -> Release<'a> {
+        let tag = tag.trim_start_matches("crates_").to_string();
+        let timestamp = sha.map_or_else(
+            || SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
+            |sha| self.repo.find_commit(sha.to_string()).unwrap().time().seconds(),
+        );
+        Release { version: Some(tag), commits, commit_id: None, timestamp, previous: None }
+    }
+
     fn save_changelog(&self, package_path: &Path, changelog: Changelog) -> Result<()> {
-        let changelog_path = package_path.join("CHANGELOG.md");
+        let changelog_path = package_path.join(CHANGELOG_NAME);
         let prev_changelog_string = fs::read_to_string(&changelog_path).unwrap_or_default();
         let mut out = File::create(&changelog_path)?;
         changelog.prepend(prev_changelog_string, &mut out)?;
