@@ -16,38 +16,67 @@ use semver::Version;
 use toml_edit::{DocumentMut, Formatted, Value};
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
+const TAG_PREFIX: &str = "crates_v";
 
 #[derive(Debug, Clone, Bpaf)]
 pub struct UpdateOptions {
-    #[bpaf(argument::<String>("version"), parse(parse_version))]
-    version: Version,
+    #[bpaf(external(bump))]
+    bump: Bump,
 
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
 }
 
-fn parse_version(version: String) -> Result<Version, semver::Error> {
-    Version::parse(&version)
+#[derive(Debug, Clone, Bpaf)]
+enum Bump {
+    Major,
+    Minor,
+    Patch,
 }
 
 pub struct Update {
-    options: UpdateOptions,
     metadata: Metadata,
     repo: Repository,
     config: Config,
-    tags: Vec<(String, String)>, // pair = (sha, tag)
+    tags: Vec<GitTag>,
+    current_version: Version,
+    next_version: Version,
+}
+
+#[derive(Debug, Clone)]
+struct GitTag {
+    version: Version,
+    sha: String,
+}
+
+impl GitTag {
+    fn new((sha, tag): (String, String)) -> Result<Self> {
+        let version = tag
+            .strip_prefix(TAG_PREFIX)
+            .ok_or_else(|| anyhow::anyhow!("Tag {tag} should start with prefix {TAG_PREFIX}"))?;
+        let version =
+            Version::parse(version).with_context(|| format!("{version} should be semver"))?;
+        Ok(GitTag { version, sha })
+    }
 }
 
 impl Update {
     pub fn new(options: UpdateOptions) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
-        let repo = Repository::init(metadata.workspace_root.clone().into_std_path_buf())?;
+        let repo = Repository::init(metadata.workspace_root.as_std_path().to_owned())?;
         let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
+        let tag_pattern = &config.git.tag_pattern;
         let tags = repo
-            .tags(&config.git.tag_pattern, config.git.topo_order.unwrap_or(false))?
+            .tags(tag_pattern, config.git.topo_order.unwrap_or(false))?
             .into_iter()
-            .collect::<Vec<_>>();
-        Ok(Self { options, metadata, repo, config, tags })
+            .map(GitTag::new)
+            .collect::<Result<Vec<_>>>()?;
+        let current_tag = tags
+            .last()
+            .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
+        let next_version = Self::next_version(&current_tag.version, &options.bump);
+        let current_version = current_tag.version.clone();
+        Ok(Self { metadata, repo, config, tags, current_version, next_version })
     }
 
     pub fn run(self) -> Result<()> {
@@ -59,7 +88,6 @@ impl Update {
         for package in &packages {
             self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
         }
-
         Ok(())
     }
 
@@ -68,22 +96,26 @@ impl Update {
         self.metadata.workspace_packages().into_iter().filter(|p| p.publish.is_none()).collect()
     }
 
-    fn version(&self) -> String {
-        self.options.version.to_string()
+    fn next_version(version: &Version, bump: &Bump) -> Version {
+        let mut version = version.clone();
+        match bump {
+            Bump::Major => version.major += 1,
+            Bump::Minor => version.minor += 1,
+            Bump::Patch => version.patch += 1,
+        }
+        version
     }
 
-    /// Regenerate the changelogs. Please change main.rs to use this.
     pub fn regenerate_changelogs(&self) -> Result<()> {
         for package in self.get_packages() {
             let package_path = package.manifest_path.as_std_path().parent().unwrap();
             let mut releases = vec![];
             for pair in self.tags.windows(2) {
-                // pair = (sha, tag)
                 let from = &pair[0];
                 let to = &pair[1];
-                let commits_range = format!("{}..{}", from.1, to.1);
+                let commits_range = format!("{}..{}", from.sha, to.sha);
                 let commits = self.get_commits_for_package(package_path, commits_range)?;
-                let release = self.get_release(commits, &to.1, Some(&to.0));
+                let release = self.get_release(commits, &to.version, Some(&to.sha));
                 releases.push(release);
             }
             let changelog = Changelog::new(releases, &self.config)?;
@@ -96,11 +128,9 @@ impl Update {
 
     fn generate_changelog_for_package(&self, package: &Package) -> Result<()> {
         let package_path = package.manifest_path.as_std_path().parent().unwrap();
-        let last_tag = self.tags.last().context("Last commit not found")?.0.clone();
-        let commits_range = format!("{}..HEAD", last_tag);
+        let commits_range = format!("{TAG_PREFIX}{}..HEAD", self.current_version);
         let commits = self.get_commits_for_package(package_path, commits_range)?;
-        let tag = format!("v{}", self.version());
-        let release = self.get_release(commits, &tag, None);
+        let release = self.get_release(commits, &self.next_version, None);
         let changelog = Changelog::new(vec![release], &self.config)?;
         self.save_changelog(package_path, changelog)?;
         Ok(())
@@ -128,15 +158,20 @@ impl Update {
     fn get_release<'a>(
         &self,
         commits: Vec<Commit<'a>>,
-        tag: &str,
+        version: &Version,
         sha: Option<&str>,
     ) -> Release<'a> {
-        let tag = tag.trim_start_matches("crates_").to_string();
         let timestamp = sha.map_or_else(
             || SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
             |sha| self.repo.find_commit(sha.to_string()).unwrap().time().seconds(),
         );
-        Release { version: Some(tag), commits, commit_id: None, timestamp, previous: None }
+        Release {
+            version: Some(version.to_string()),
+            commits,
+            commit_id: None,
+            timestamp,
+            previous: None,
+        }
     }
 
     fn save_changelog(&self, package_path: &Path, changelog: Changelog) -> Result<()> {
@@ -173,7 +208,7 @@ impl Update {
                     .and_then(|item| item.as_inline_table_mut())
                     .and_then(|item| item.get_mut("version"))
                 {
-                    *version = Value::String(Formatted::new(self.version()));
+                    *version = Value::String(Formatted::new(self.next_version.to_string()));
                 }
             }
         })
@@ -189,7 +224,7 @@ impl Update {
             else {
                 return;
             };
-            *version = Value::String(Formatted::new(self.version()));
+            *version = Value::String(Formatted::new(self.next_version.to_string()));
         })
     }
 }
