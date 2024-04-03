@@ -1,7 +1,7 @@
 use std::{
     env,
     io::{BufRead, BufReader},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, ExitStatus, Stdio},
 };
 
@@ -15,22 +15,16 @@ const CARGO_REGISTRY_TOKEN: &str = "CARGO_REGISTRY_TOKEN";
 pub struct PublishOptions {
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
-
-    /// Upload to crates.io.
-    #[bpaf(switch)]
-    upload: bool,
 }
 
-#[allow(unused)]
 pub struct Publish {
-    options: PublishOptions,
     metadata: Metadata,
 }
 
 impl Publish {
     pub fn new(options: PublishOptions) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
-        Ok(Self { options, metadata })
+        Ok(Self { metadata })
     }
 
     pub fn run(self) -> Result<()> {
@@ -38,22 +32,13 @@ impl Publish {
         let packages = release_order::release_order(&packages)?;
         let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
 
+        println!("Checking");
+        self.run_cargo(&["check", "--all-features", "--all-targets"])?;
+
         println!("Publishing packages: {:?}", packages);
-
-        // check with --dry-run first to make sure all crates compile
         for package in &packages {
-            self.run_cargo_publish(package, /* dry_run */ true)?;
+            self.run_cargo_publish(package)?;
         }
-
-        // then publish
-        if self.options.upload {
-            for package in &packages {
-                self.run_cargo_publish(package, /* dry_run */ false)?;
-            }
-        } else {
-            println!("Publish is turned off by default, please use `--upload` to crates.io.");
-        }
-
         println!("Published packages: {:?}", packages);
         Ok(())
     }
@@ -63,12 +48,9 @@ impl Publish {
         self.metadata.workspace_packages().into_iter().filter(|p| p.publish.is_none()).collect()
     }
 
-    fn run_cargo_publish(&self, name: &str, dry_run: bool) -> Result<()> {
-        let mut args = vec!["--color", "always", "publish", "-p", name];
-        if dry_run {
-            args.push("--dry-run")
-        }
-        let output = Self::run_cargo(self.metadata.workspace_root.as_std_path(), &args)?;
+    fn run_cargo_publish(&self, name: &str) -> Result<()> {
+        let args = &["--color", "always", "publish", "-p", name];
+        let output = self.run_cargo(args)?;
         if !output.status.success()
             || !output.stderr.contains("Uploading")
             || output.stderr.contains("error:")
@@ -78,7 +60,8 @@ impl Publish {
         Ok(())
     }
 
-    fn run_cargo(root: &Path, args: &[&str]) -> Result<CmdOutput> {
+    fn run_cargo(&self, args: &[&str]) -> Result<CmdOutput> {
+        let root = self.metadata.workspace_root.as_std_path();
         fn cargo_cmd() -> Command {
             let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
             Command::new(cargo)
@@ -126,7 +109,7 @@ pub struct CmdOutput {
 
 mod release_order {
     use anyhow::Result;
-    use cargo_metadata::{Dependency, DependencyKind, Package};
+    use cargo_metadata::Package;
 
     /// Return packages in an order they can be released.
     /// In the result, the packages are placed after all their dependencies.
@@ -159,7 +142,6 @@ mod release_order {
                 d.name == p.name
               // Exclude the current package.
               && p.name != pkg.name
-              && should_dep_be_released_before(d, pkg)
             }) {
                 anyhow::ensure!(
                     !is_package_in(dep, passed),
@@ -181,28 +163,5 @@ mod release_order {
     /// because it compares the whole package struct.
     fn is_package_in(pkg: &Package, packages: &[&Package]) -> bool {
         packages.iter().any(|p| p.name == pkg.name)
-    }
-
-    /// Check if the dependency is enabled in features.
-    fn is_dep_in_features(pkg: &Package, dep: &str) -> bool {
-        pkg.features
-            // Discard features name.
-            .values()
-            // Any feature contains the dependency in the format `dep/feature`.
-            .any(|enabled_features| {
-                enabled_features
-                    .iter()
-                    .filter_map(|feature| feature.split_once('/').map(|split| split.0))
-                    .any(|enabled_dependency| enabled_dependency == dep)
-            })
-    }
-
-    /// Check if the dependency should be released before the current package.
-    fn should_dep_be_released_before(dep: &Dependency, pkg: &Package) -> bool {
-        // Ignore development dependencies. They don't need to be published before the current package...
-        matches!(dep.kind, DependencyKind::Normal | DependencyKind::Build)
-      // ...unless they are in features. In fact, `cargo-publish` compiles crates that are in features
-      // and dev-dependencies, even if they are not present in normal dependencies.
-      || is_dep_in_features(pkg, &dep.name)
     }
 }
