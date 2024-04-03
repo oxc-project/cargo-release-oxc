@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.5](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.4...v0.0.5) - 2024-04-03
+
+### Added
+- switch to new branch and commit changes
+
+### Fixed
+- reset lower version (minor, patch) numbers to 0 when bump versions
+
+### Other
+- fix clippy warnings
+- add [workspace.lints.clippy]
+
 ## [0.0.4](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.3...v0.0.4) - 2024-04-03
 
 ### Fixed
