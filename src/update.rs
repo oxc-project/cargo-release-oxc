@@ -12,6 +12,7 @@ use git_cliff_core::{
     changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
     DEFAULT_CONFIG,
 };
+use git_cmd::Repo as GitCommand;
 use semver::Version;
 use toml_edit::{DocumentMut, Formatted, Value};
 
@@ -37,6 +38,7 @@ enum Bump {
 pub struct Update {
     metadata: Metadata,
     repo: Repository,
+    git_command: GitCommand,
     config: Config,
     tags: Vec<GitTag>,
     current_version: Version,
@@ -64,6 +66,7 @@ impl Update {
     pub fn new(options: UpdateOptions) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let repo = Repository::init(metadata.workspace_root.as_std_path().to_owned())?;
+        let git_command = GitCommand::new(&metadata.workspace_root)?;
         let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
         let tag_pattern = &config.git.tag_pattern;
         let tags = repo
@@ -76,10 +79,16 @@ impl Update {
             .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
         let next_version = Self::next_version(&current_tag.version, &options.bump);
         let current_version = current_tag.version.clone();
-        Ok(Self { metadata, repo, config, tags, current_version, next_version })
+        Ok(Self { metadata, repo, git_command, config, tags, current_version, next_version })
     }
 
     pub fn run(self) -> Result<()> {
+        self.git_command.is_clean()?;
+
+        let next_tag = self.next_tag();
+        println!("Checkout new branch {next_tag}");
+        self.git_command.checkout_new_branch(&next_tag)?;
+
         let packages = self.get_packages();
         for package in &packages {
             self.generate_changelog_for_package(package)?;
@@ -88,6 +97,7 @@ impl Update {
         for package in &packages {
             self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
         }
+        self.commit_and_tag_all()?;
         Ok(())
     }
 
@@ -115,6 +125,10 @@ impl Update {
         version
     }
 
+    fn next_tag(&self) -> String {
+        format!("{TAG_PREFIX}{}", self.next_version)
+    }
+
     pub fn regenerate_changelogs(&self) -> Result<()> {
         for package in self.get_packages() {
             let package_path = package.manifest_path.as_std_path().parent().unwrap();
@@ -132,6 +146,14 @@ impl Update {
             let mut out = File::create(&changelog_path)?;
             changelog.generate(&mut out)?;
         }
+        Ok(())
+    }
+
+    fn commit_and_tag_all(&self) -> Result<()> {
+        let next_version = self.next_version.to_string();
+        let commit_message = format!("Release crates v{next_version}");
+        self.git_command.add_all_and_commit(&commit_message)?;
+        self.git_command.git(&["tag", &self.next_tag()])?;
         Ok(())
     }
 
