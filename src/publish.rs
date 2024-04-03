@@ -12,7 +12,7 @@ use cargo_metadata::{Metadata, MetadataCommand, Package};
 const CARGO_REGISTRY_TOKEN: &str = "CARGO_REGISTRY_TOKEN";
 
 #[derive(Debug, Clone, Bpaf)]
-pub struct PublishOptions {
+pub struct Options {
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
 }
@@ -22,11 +22,14 @@ pub struct Publish {
 }
 
 impl Publish {
-    pub fn new(options: PublishOptions) -> Result<Self> {
+    /// # Errors
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn new(options: Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         Ok(Self { metadata })
     }
 
+    /// # Errors
     pub fn run(self) -> Result<()> {
         let packages = self.get_packages();
         let packages = release_order::release_order(&packages)?;
@@ -35,11 +38,11 @@ impl Publish {
         println!("Checking");
         self.run_cargo(&["check", "--all-features", "--all-targets"])?;
 
-        println!("Publishing packages: {:?}", packages);
+        println!("Publishing packages: {packages:?}");
         for package in &packages {
             self.run_cargo_publish(package)?;
         }
-        println!("Published packages: {:?}", packages);
+        println!("Published packages: {packages:?}");
         Ok(())
     }
 
@@ -61,14 +64,14 @@ impl Publish {
     }
 
     fn run_cargo(&self, args: &[&str]) -> Result<CmdOutput> {
-        let root = self.metadata.workspace_root.as_std_path();
         fn cargo_cmd() -> Command {
             let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
             Command::new(cargo)
         }
 
-        let mut stderr_lines = vec![];
+        let root = self.metadata.workspace_root.as_std_path();
 
+        let mut stderr_lines = vec![];
         let mut command = cargo_cmd();
         if let Ok(token) = env::var(CARGO_REGISTRY_TOKEN) {
             command.env(CARGO_REGISTRY_TOKEN, token);

@@ -10,9 +10,8 @@ categories = []
 license = "MIT"
 readme = "README.md"
 
-[workspace.lints.clippy]
+[lints.clippy]
 all = "warn"
-cargo = "warn"
 pedantic = "warn"
 nursery = "warn"
 dbg_macro = "warn"

@@ -4,8 +4,8 @@ mod update;
 use bpaf::Bpaf;
 
 pub use self::{
-    publish::{publish_options, Publish, PublishOptions},
-    update::{update_options, Update, UpdateOptions},
+    publish::{options as publish_options, Options as PublishOptions, Publish},
+    update::{options as update_options, Options as UpdateOptions, Update},
 };
 
 #[derive(Debug, Clone, Bpaf)]

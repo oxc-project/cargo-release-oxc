@@ -20,7 +20,7 @@ const CHANGELOG_NAME: &str = "CHANGELOG.md";
 const TAG_PREFIX: &str = "crates_v";
 
 #[derive(Debug, Clone, Bpaf)]
-pub struct UpdateOptions {
+pub struct Options {
     #[bpaf(external(bump))]
     bump: Bump,
 
@@ -52,18 +52,21 @@ struct GitTag {
 }
 
 impl GitTag {
+    /// # Errors
     fn new((sha, tag): (String, String)) -> Result<Self> {
         let version = tag
             .strip_prefix(TAG_PREFIX)
             .ok_or_else(|| anyhow::anyhow!("Tag {tag} should start with prefix {TAG_PREFIX}"))?;
         let version =
             Version::parse(version).with_context(|| format!("{version} should be semver"))?;
-        Ok(GitTag { version, sha })
+        Ok(Self { version, sha })
     }
 }
 
 impl Update {
-    pub fn new(options: UpdateOptions) -> Result<Self> {
+    /// # Errors
+    #[allow(clippy::needless_pass_by_value)]
+    pub fn new(options: Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let repo = Repository::init(metadata.workspace_root.as_std_path().to_owned())?;
         let git_command = GitCommand::new(&metadata.workspace_root)?;
@@ -82,6 +85,7 @@ impl Update {
         Ok(Self { metadata, repo, git_command, config, tags, current_version, next_version })
     }
 
+    /// # Errors
     pub fn run(self) -> Result<()> {
         self.git_command.is_clean()?;
 
@@ -129,16 +133,20 @@ impl Update {
         format!("{TAG_PREFIX}{}", self.next_version)
     }
 
+    /// # Errors
     pub fn regenerate_changelogs(&self) -> Result<()> {
         for package in self.get_packages() {
-            let package_path = package.manifest_path.as_std_path().parent().unwrap();
+            let package_path = package.manifest_path.as_std_path();
+            let package_path = package_path
+                .parent()
+                .ok_or_else(|| anyhow::anyhow!("Failed to get {package_path:?} parent"))?;
             let mut releases = vec![];
             for pair in self.tags.windows(2) {
                 let from = &pair[0];
                 let to = &pair[1];
                 let commits_range = format!("{}..{}", from.sha, to.sha);
                 let commits = self.get_commits_for_package(package_path, commits_range)?;
-                let release = self.get_release(commits, &to.version, Some(&to.sha));
+                let release = self.get_release(commits, &to.version, Some(&to.sha))?;
                 releases.push(release);
             }
             let changelog = Changelog::new(releases, &self.config)?;
@@ -158,12 +166,15 @@ impl Update {
     }
 
     fn generate_changelog_for_package(&self, package: &Package) -> Result<()> {
-        let package_path = package.manifest_path.as_std_path().parent().unwrap();
+        let package_path = package.manifest_path.as_std_path();
+        let package_path = package_path
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Failed to get {package_path:?} parent"))?;
         let commits_range = format!("{TAG_PREFIX}{}..HEAD", self.current_version);
         let commits = self.get_commits_for_package(package_path, commits_range)?;
-        let release = self.get_release(commits, &self.next_version, None);
+        let release = self.get_release(commits, &self.next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.config)?;
-        self.save_changelog(package_path, changelog)?;
+        Self::save_changelog(package_path, &changelog)?;
         Ok(())
     }
 
@@ -173,8 +184,7 @@ impl Update {
         commits_range: String,
     ) -> Result<Vec<Commit>> {
         let include_path = package_path
-            .strip_prefix(self.metadata.workspace_root.as_std_path())
-            .unwrap()
+            .strip_prefix(self.metadata.workspace_root.as_std_path())?
             .to_string_lossy();
         let include_path = glob::Pattern::new(&format!("{include_path}/**"))?;
         let commits = self
@@ -186,26 +196,32 @@ impl Update {
         Ok(commits)
     }
 
+    #[allow(clippy::cast_possible_wrap)]
     fn get_release<'a>(
         &self,
         commits: Vec<Commit<'a>>,
         version: &Version,
         sha: Option<&str>,
-    ) -> Release<'a> {
-        let timestamp = sha.map_or_else(
-            || SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64,
-            |sha| self.repo.find_commit(sha.to_string()).unwrap().time().seconds(),
-        );
-        Release {
+    ) -> Result<Release<'a>> {
+        let timestamp = match sha {
+            None => SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64,
+            Some(sha) => self
+                .repo
+                .find_commit(sha.to_string())
+                .ok_or_else(|| anyhow::anyhow!("Cannot find commit {sha}"))?
+                .time()
+                .seconds(),
+        };
+        Ok(Release {
             version: Some(version.to_string()),
             commits,
             commit_id: None,
             timestamp,
             previous: None,
-        }
+        })
     }
 
-    fn save_changelog(&self, package_path: &Path, changelog: Changelog) -> Result<()> {
+    fn save_changelog(package_path: &Path, changelog: &Changelog) -> Result<()> {
         let changelog_path = package_path.join(CHANGELOG_NAME);
         let prev_changelog_string = fs::read_to_string(&changelog_path).unwrap_or_default();
         let mut out = File::create(&changelog_path)?;
