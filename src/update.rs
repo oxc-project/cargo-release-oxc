@@ -16,6 +16,8 @@ use git_cmd::Repo as GitCommand;
 use semver::Version;
 use toml_edit::{DocumentMut, Formatted, Value};
 
+use crate::cargo_command::CargoCommand;
+
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 const TAG_PREFIX: &str = "crates_v";
 
@@ -37,6 +39,7 @@ enum Bump {
 
 pub struct Update {
     metadata: Metadata,
+    cargo: CargoCommand,
     repo: Repository,
     git_command: GitCommand,
     config: Config,
@@ -68,6 +71,7 @@ impl Update {
     #[allow(clippy::needless_pass_by_value)]
     pub fn new(options: Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
+        let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
         let repo = Repository::init(metadata.workspace_root.as_std_path().to_owned())?;
         let git_command = GitCommand::new(&metadata.workspace_root)?;
         let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
@@ -82,7 +86,7 @@ impl Update {
             .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
         let next_version = Self::next_version(&current_tag.version, &options.bump);
         let current_version = current_tag.version.clone();
-        Ok(Self { metadata, repo, git_command, config, tags, current_version, next_version })
+        Ok(Self { metadata, cargo, repo, git_command, config, tags, current_version, next_version })
     }
 
     /// # Errors
@@ -94,12 +98,15 @@ impl Update {
         self.git_command.checkout_new_branch(&next_tag)?;
 
         let packages = self.get_packages();
-        for package in &packages {
-            self.generate_changelog_for_package(package)?;
-        }
+
         self.update_cargo_toml_version_for_workspace(&packages)?;
         for package in &packages {
             self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
+        }
+        self.cargo.check()?;
+
+        for package in &packages {
+            self.generate_changelog_for_package(package)?;
         }
         self.commit_and_tag_all()?;
         Ok(())
