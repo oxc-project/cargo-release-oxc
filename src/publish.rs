@@ -1,8 +1,9 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::Duration};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use bpaf::Bpaf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
+use crates_io_api::SyncClient;
 
 use crate::cargo_command::CargoCommand;
 
@@ -29,6 +30,26 @@ impl Publish {
     /// # Errors
     pub fn run(self) -> Result<()> {
         let packages = self.get_packages();
+
+        let Some(root_package) = &packages.iter().find(|package| package.name == "oxc") else {
+            anyhow::bail!("root package 'oxc' not found.");
+        };
+
+        let root_version = root_package.version.to_string();
+
+        let versions = {
+            let client = SyncClient::new("boshen (boshenc@gmail.com)", Duration::from_millis(1000))
+                .context("failed to get client")?;
+            let krate = client.get_crate("oxc").context("cannot get the `oxc` crate")?;
+            krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>()
+        };
+
+        // Exit if already published.
+        if versions.contains(&root_version) {
+            println!("Already published {root_version}");
+            return Ok(());
+        }
+
         let packages = release_order::release_order(&packages)?;
         let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
 
