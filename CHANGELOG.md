@@ -6,6 +6,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.6...v0.0.7) - 2024-05-07
+
+### Added
+- check version and return if version is already published before publish
+
+### Other
+- format toml
+- update renovate.json
+- *(deps)* lock file maintenance rust crates ([#14](https://github.com/oxc-project/cargo-release-oxc/pull/14))
+- update renovate
+- *(deps)* update rust crate anyhow to v1.0.83 ([#13](https://github.com/oxc-project/cargo-release-oxc/pull/13))
+- *(deps)* update rust crate git_cmd to v0.6.5 ([#12](https://github.com/oxc-project/cargo-release-oxc/pull/12))
+- *(deps)* update dependency rust to v1.78.0 ([#11](https://github.com/oxc-project/cargo-release-oxc/pull/11))
+- *(deps)* update rust crates ([#10](https://github.com/oxc-project/cargo-release-oxc/pull/10))
+- *(renovate)* add rust-toolchain
+
 ## [0.0.6](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.5...v0.0.6) - 2024-04-08
 
 ### Added
