@@ -16,6 +16,7 @@ pub struct Options {
 pub struct Publish {
     metadata: Metadata,
     cargo: CargoCommand,
+    client: SyncClient,
 }
 
 impl Publish {
@@ -24,7 +25,9 @@ impl Publish {
     pub fn new(options: Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
-        Ok(Self { metadata, cargo })
+        let client = SyncClient::new("boshen (boshenc@gmail.com)", Duration::from_millis(1000))
+            .context("failed to get client")?;
+        Ok(Self { metadata, cargo, client })
     }
 
     /// # Errors
@@ -37,19 +40,6 @@ impl Publish {
 
         let root_version = root_package.version.to_string();
 
-        let versions = {
-            let client = SyncClient::new("boshen (boshenc@gmail.com)", Duration::from_millis(1000))
-                .context("failed to get client")?;
-            let krate = client.get_crate("oxc").context("cannot get the `oxc` crate")?;
-            krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>()
-        };
-
-        // Exit if already published.
-        if versions.contains(&root_version) {
-            println!("Already published {root_version}");
-            return Ok(());
-        }
-
         let packages = release_order::release_order(&packages)?;
         let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
 
@@ -58,10 +48,23 @@ impl Publish {
 
         println!("Publishing packages: {packages:?}");
         for package in &packages {
+            if self.is_already_published(package, &root_version)? {
+                continue;
+            }
             self.cargo.publish(package)?;
         }
         println!("Published packages: {packages:?}");
         Ok(())
+    }
+
+    fn is_already_published(&self, package: &str, root_version: &str) -> Result<bool> {
+        let krate = self.client.get_crate(package).context("cannot get the `oxc` crate")?;
+        let versions = krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>();
+        let is_already_published = versions.iter().any(|v| v == root_version);
+        if is_already_published {
+            println!("Already published {package} {root_version}");
+        }
+        Ok(is_already_published)
     }
 
     fn get_packages(&self) -> Vec<&Package> {
