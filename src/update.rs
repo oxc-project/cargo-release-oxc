@@ -93,10 +93,6 @@ impl Update {
     pub fn run(self) -> Result<()> {
         self.git_command.is_clean()?;
 
-        let next_tag = self.next_tag();
-        println!("Checkout new branch {next_tag}");
-        self.git_command.checkout_new_branch(&next_tag)?;
-
         let packages = self.get_packages();
 
         self.update_cargo_toml_version_for_workspace(&packages)?;
@@ -108,7 +104,6 @@ impl Update {
         for package in &packages {
             self.generate_changelog_for_package(package)?;
         }
-        self.commit_and_tag_all()?;
         Ok(())
     }
 
@@ -136,10 +131,6 @@ impl Update {
         version
     }
 
-    fn next_tag(&self) -> String {
-        format!("{TAG_PREFIX}{}", self.next_version)
-    }
-
     /// # Errors
     pub fn regenerate_changelogs(&self) -> Result<()> {
         for package in self.get_packages() {
@@ -161,14 +152,6 @@ impl Update {
             let mut out = File::create(&changelog_path)?;
             changelog.generate(&mut out)?;
         }
-        Ok(())
-    }
-
-    fn commit_and_tag_all(&self) -> Result<()> {
-        let next_version = self.next_version.to_string();
-        let commit_message = format!("Release crates v{next_version}");
-        self.git_command.add_all_and_commit(&commit_message)?;
-        self.git_command.git(&["tag", &self.next_tag()])?;
         Ok(())
     }
 
