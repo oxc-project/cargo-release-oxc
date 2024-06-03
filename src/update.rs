@@ -23,18 +23,8 @@ pub struct Options {
     #[bpaf(long, argument::<String>("NAME"))]
     name: String,
 
-    #[bpaf(external(bump))]
-    bump: Bump,
-
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
-}
-
-#[derive(Debug, Clone, Bpaf)]
-enum Bump {
-    Major,
-    Minor,
-    Patch,
 }
 
 pub struct Update {
@@ -44,7 +34,6 @@ pub struct Update {
     config: Config,
     tags: Vec<GitTag>,
     current_version: Version,
-    next_version: Version,
     /// Name used to prefix a tag, e.g. `crates_v1.0.0`
     name: String,
 }
@@ -88,18 +77,8 @@ impl Update {
         let current_tag = tags
             .last()
             .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
-        let next_version = Self::next_version(&current_tag.version, &options.bump);
         let current_version = current_tag.version.clone();
-        Ok(Self {
-            metadata,
-            repo,
-            git_command,
-            config,
-            tags,
-            current_version,
-            next_version,
-            name: options.name,
-        })
+        Ok(Self { metadata, repo, git_command, config, tags, current_version, name: options.name })
     }
 
     /// # Errors
@@ -108,16 +87,21 @@ impl Update {
 
         let packages = self.get_packages();
 
-        self.update_cargo_toml_version_for_workspace(&packages)?;
-        for package in &packages {
-            self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
-        }
+        let next_version = self.calculate_next_version(&packages)?;
 
         for package in &packages {
-            self.generate_changelog_for_package(package)?;
+            self.generate_changelog_for_package(package, &next_version)?;
         }
 
-        println!("{}", self.next_version);
+        self.update_cargo_toml_version_for_workspace(&packages, &next_version)?;
+        for package in &packages {
+            Self::update_cargo_toml_version_for_package(
+                package.manifest_path.as_std_path(),
+                &next_version,
+            )?;
+        }
+
+        println!("{next_version}");
 
         Ok(())
     }
@@ -127,57 +111,46 @@ impl Update {
         self.metadata.workspace_packages().into_iter().filter(|p| p.publish.is_none()).collect()
     }
 
-    fn next_version(version: &Version, bump: &Bump) -> Version {
-        let mut version = version.clone();
-        match bump {
-            Bump::Patch => {
-                version.patch += 1;
-            }
-            Bump::Minor => {
-                version.minor += 1;
-                version.patch = 0;
-            }
-            Bump::Major => {
-                version.major += 1;
-                version.minor += 0;
-                version.patch += 0;
-            }
-        }
-        version
+    fn calculate_next_version(&self, packages: &[&Package]) -> Result<String> {
+        let commits_range = format!("{}_v{}..HEAD", &self.name, self.current_version);
+        let include_paths = packages
+            .iter()
+            .map(|package| -> Result<glob::Pattern> { self.get_include_pattern(package) })
+            .collect::<Result<Vec<_>>>()?;
+        let commits = self
+            .repo
+            .commits(Some(commits_range), Some(include_paths), None)?
+            .iter()
+            .map(Commit::from)
+            .collect::<Vec<_>>();
+        let previous = Release {
+            version: Some(self.current_version.to_string()),
+            commits: vec![],
+            commit_id: None,
+            timestamp: 0,
+            previous: None,
+        };
+        let release = Release {
+            version: None,
+            commits,
+            commit_id: None,
+            timestamp: 0,
+            previous: Some(Box::new(previous)),
+        };
+        let mut changelog = Changelog::new(vec![release], &self.config)?;
+        let next_version =
+            changelog.bump_version().context("bump failed")?.context("bump failed")?;
+        Ok(next_version)
     }
 
-    /// # Errors
-    pub fn regenerate_changelogs(&self) -> Result<()> {
-        for package in self.get_packages() {
-            let package_path = package.manifest_path.as_std_path();
-            let package_path = package_path
-                .parent()
-                .ok_or_else(|| anyhow::anyhow!("Failed to get {package_path:?} parent"))?;
-            let mut releases = vec![];
-            for pair in self.tags.windows(2) {
-                let from = &pair[0];
-                let to = &pair[1];
-                let commits_range = format!("{}..{}", from.sha, to.sha);
-                let commits = self.get_commits_for_package(package_path, commits_range)?;
-                let release = self.get_release(commits, &to.version, Some(&to.sha))?;
-                releases.push(release);
-            }
-            let changelog = Changelog::new(releases, &self.config)?;
-            let changelog_path = package_path.join(CHANGELOG_NAME);
-            let mut out = File::create(&changelog_path)?;
-            changelog.generate(&mut out)?;
-        }
-        Ok(())
-    }
-
-    fn generate_changelog_for_package(&self, package: &Package) -> Result<()> {
+    fn generate_changelog_for_package(&self, package: &Package, next_version: &str) -> Result<()> {
         let package_path = package.manifest_path.as_std_path();
         let package_path = package_path
             .parent()
             .ok_or_else(|| anyhow::anyhow!("Failed to get {package_path:?} parent"))?;
         let commits_range = format!("{}_v{}..HEAD", &self.name, self.current_version);
-        let commits = self.get_commits_for_package(package_path, commits_range)?;
-        let release = self.get_release(commits, &self.next_version, None)?;
+        let commits = self.get_commits_for_package(package, commits_range)?;
+        let release = self.get_release(commits, next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.config)?;
         Self::save_changelog(package_path, &changelog)?;
         Ok(())
@@ -185,13 +158,10 @@ impl Update {
 
     fn get_commits_for_package(
         &self,
-        package_path: &Path,
+        package: &Package,
         commits_range: String,
     ) -> Result<Vec<Commit>> {
-        let include_path = package_path
-            .strip_prefix(self.metadata.workspace_root.as_std_path())?
-            .to_string_lossy();
-        let include_path = glob::Pattern::new(&format!("{include_path}/**"))?;
+        let include_path = self.get_include_pattern(package)?;
         let commits = self
             .repo
             .commits(Some(commits_range), Some(vec![include_path]), None)?
@@ -201,11 +171,23 @@ impl Update {
         Ok(commits)
     }
 
+    #[allow(clippy::unwrap_used)]
+    fn package_dir(package: &Package) -> PathBuf {
+        package.manifest_path.as_std_path().parent().unwrap().to_path_buf()
+    }
+
+    fn get_include_pattern(&self, package: &Package) -> Result<glob::Pattern> {
+        let path = Self::package_dir(package);
+        let include_path =
+            path.strip_prefix(self.metadata.workspace_root.as_std_path())?.to_string_lossy();
+        glob::Pattern::new(&format!("{include_path}/**")).context("pattern failed")
+    }
+
     #[allow(clippy::cast_possible_wrap)]
     fn get_release<'a>(
         &self,
         commits: Vec<Commit<'a>>,
-        version: &Version,
+        next_version: &str,
         sha: Option<&str>,
     ) -> Result<Release<'a>> {
         let timestamp = match sha {
@@ -218,7 +200,7 @@ impl Update {
                 .seconds(),
         };
         Ok(Release {
-            version: Some(version.to_string()),
+            version: Some(next_version.to_string()),
             commits,
             commit_id: None,
             timestamp,
@@ -243,7 +225,11 @@ impl Update {
         Ok(())
     }
 
-    fn update_cargo_toml_version_for_workspace(&self, packages: &[&Package]) -> Result<()> {
+    fn update_cargo_toml_version_for_workspace(
+        &self,
+        packages: &[&Package],
+        next_version: &str,
+    ) -> Result<()> {
         let manifest_path = self.metadata.workspace_root.as_std_path().join("Cargo.toml");
         Self::update_toml(&manifest_path, |manifest| {
             let Some(table) = manifest
@@ -260,13 +246,16 @@ impl Update {
                     .and_then(|item| item.as_inline_table_mut())
                     .and_then(|item| item.get_mut("version"))
                 {
-                    *version = Value::String(Formatted::new(self.next_version.to_string()));
+                    *version = Value::String(Formatted::new(next_version.to_string()));
                 }
             }
         })
     }
 
-    fn update_cargo_toml_version_for_package(&self, manifest_path: &Path) -> Result<()> {
+    fn update_cargo_toml_version_for_package(
+        manifest_path: &Path,
+        next_version: &str,
+    ) -> Result<()> {
         Self::update_toml(manifest_path, |manifest| {
             let Some(version) = manifest
                 .get_mut("package")
@@ -276,7 +265,28 @@ impl Update {
             else {
                 return;
             };
-            *version = Value::String(Formatted::new(self.next_version.to_string()));
+            *version = Value::String(Formatted::new(next_version.to_string()));
         })
+    }
+
+    /// # Errors
+    pub fn regenerate_changelogs(&self) -> Result<()> {
+        for package in self.get_packages() {
+            let package_dir = Self::package_dir(package);
+            let mut releases = vec![];
+            for pair in self.tags.windows(2) {
+                let from = &pair[0];
+                let to = &pair[1];
+                let commits_range = format!("{}..{}", from.sha, to.sha);
+                let commits = self.get_commits_for_package(package, commits_range)?;
+                let release = self.get_release(commits, &to.version.to_string(), Some(&to.sha))?;
+                releases.push(release);
+            }
+            let changelog = Changelog::new(releases, &self.config)?;
+            let changelog_path = package_dir.join(CHANGELOG_NAME);
+            let mut out = File::create(&changelog_path)?;
+            changelog.generate(&mut out)?;
+        }
+        Ok(())
     }
 }
