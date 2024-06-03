@@ -1,6 +1,7 @@
 mod cargo_command;
 mod publish;
 mod update;
+mod versioning;
 
 use bpaf::Bpaf;
 

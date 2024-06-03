@@ -1,7 +1,6 @@
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
-    str::FromStr,
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -14,7 +13,8 @@ use git_cliff_core::{
 };
 use git_cmd::Repo as GitCommand;
 use semver::Version;
-use toml_edit::{DocumentMut, Formatted, Value};
+
+use crate::versioning::cargo::CargoToml;
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
@@ -216,57 +216,26 @@ impl Update {
         Ok(())
     }
 
-    fn update_toml(manifest_path: &Path, cb: impl FnOnce(&mut DocumentMut)) -> Result<()> {
-        let manifest = fs::read_to_string(manifest_path)?;
-        let mut manifest = DocumentMut::from_str(&manifest)?;
-        cb(&mut manifest);
-        let serialized = manifest.to_string();
-        fs::write(manifest_path, serialized)?;
-        Ok(())
-    }
-
     fn update_cargo_toml_version_for_workspace(
         &self,
         packages: &[&Package],
         next_version: &str,
     ) -> Result<()> {
         let manifest_path = self.metadata.workspace_root.as_std_path().join("Cargo.toml");
-        Self::update_toml(&manifest_path, |manifest| {
-            let Some(table) = manifest
-                .get_mut("workspace")
-                .and_then(|item| item.as_table_mut())
-                .and_then(|table| table.get_mut("dependencies"))
-                .and_then(|item| item.as_table_mut())
-            else {
-                return;
-            };
-            for package in packages {
-                if let Some(version) = table
-                    .get_mut(&package.name)
-                    .and_then(|item| item.as_inline_table_mut())
-                    .and_then(|item| item.get_mut("version"))
-                {
-                    *version = Value::String(Formatted::new(next_version.to_string()));
-                }
-            }
-        })
+        let mut workspace_toml = CargoToml::new(&manifest_path)?;
+        for package in packages {
+            workspace_toml.set_workspace_dependency_version(&package.name, next_version)?;
+        }
+        Ok(())
     }
 
     fn update_cargo_toml_version_for_package(
         manifest_path: &Path,
         next_version: &str,
     ) -> Result<()> {
-        Self::update_toml(manifest_path, |manifest| {
-            let Some(version) = manifest
-                .get_mut("package")
-                .and_then(|item| item.as_table_mut())
-                .and_then(|table| table.get_mut("version"))
-                .and_then(|item| item.as_value_mut())
-            else {
-                return;
-            };
-            *version = Value::String(Formatted::new(next_version.to_string()));
-        })
+        let mut cargo_toml = CargoToml::new(manifest_path)?;
+        cargo_toml.set_version(next_version)?;
+        cargo_toml.save()
     }
 
     /// # Errors
