@@ -116,6 +116,9 @@ impl Update {
         for package in &packages {
             self.generate_changelog_for_package(package)?;
         }
+
+        println!("{}", self.next_version);
+
         Ok(())
     }
 
