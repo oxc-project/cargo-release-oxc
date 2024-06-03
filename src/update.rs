@@ -16,8 +16,6 @@ use git_cmd::Repo as GitCommand;
 use semver::Version;
 use toml_edit::{DocumentMut, Formatted, Value};
 
-use crate::cargo_command::CargoCommand;
-
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
 #[derive(Debug, Clone, Bpaf)]
@@ -41,7 +39,6 @@ enum Bump {
 
 pub struct Update {
     metadata: Metadata,
-    cargo: CargoCommand,
     repo: Repository,
     git_command: GitCommand,
     config: Config,
@@ -79,7 +76,6 @@ impl Update {
     /// # Errors
     pub fn new(options: Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
-        let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
         let repo = Repository::init(metadata.workspace_root.as_std_path().to_owned())?;
         let git_command = GitCommand::new(&metadata.workspace_root)?;
         let config = Config::parse(&metadata.workspace_root.as_std_path().join(DEFAULT_CONFIG))?;
@@ -96,7 +92,6 @@ impl Update {
         let current_version = current_tag.version.clone();
         Ok(Self {
             metadata,
-            cargo,
             repo,
             git_command,
             config,
@@ -117,7 +112,6 @@ impl Update {
         for package in &packages {
             self.update_cargo_toml_version_for_package(package.manifest_path.as_std_path())?;
         }
-        self.cargo.check()?;
 
         for package in &packages {
             self.generate_changelog_for_package(package)?;
