@@ -19,10 +19,12 @@ use toml_edit::{DocumentMut, Formatted, Value};
 use crate::cargo_command::CargoCommand;
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
-const TAG_PREFIX: &str = "crates_v";
 
 #[derive(Debug, Clone, Bpaf)]
 pub struct Options {
+    #[bpaf(long, argument::<String>("NAME"))]
+    name: String,
+
     #[bpaf(external(bump))]
     bump: Bump,
 
@@ -46,6 +48,8 @@ pub struct Update {
     tags: Vec<GitTag>,
     current_version: Version,
     next_version: Version,
+    /// Name used to prefix a tag, e.g. `crates_v1.0.0`
+    name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -57,18 +61,22 @@ struct GitTag {
 impl GitTag {
     /// # Errors
     fn new((sha, tag): (String, String)) -> Result<Self> {
-        let version = tag
-            .strip_prefix(TAG_PREFIX)
-            .ok_or_else(|| anyhow::anyhow!("Tag {tag} should start with prefix {TAG_PREFIX}"))?;
-        let version =
-            Version::parse(version).with_context(|| format!("{version} should be semver"))?;
+        let version = if tag.contains('v') {
+            tag.split_once('v')
+                .with_context(|| format!("tag {tag} does not have a `v`"))?
+                .1
+                .to_string()
+        } else {
+            tag
+        };
+        let version = Version::parse(&version)
+            .with_context(|| format!("version {version} should be semver"))?;
         Ok(Self { version, sha })
     }
 }
 
 impl Update {
     /// # Errors
-    #[allow(clippy::needless_pass_by_value)]
     pub fn new(options: Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
@@ -86,7 +94,17 @@ impl Update {
             .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
         let next_version = Self::next_version(&current_tag.version, &options.bump);
         let current_version = current_tag.version.clone();
-        Ok(Self { metadata, cargo, repo, git_command, config, tags, current_version, next_version })
+        Ok(Self {
+            metadata,
+            cargo,
+            repo,
+            git_command,
+            config,
+            tags,
+            current_version,
+            next_version,
+            name: options.name,
+        })
     }
 
     /// # Errors
@@ -160,7 +178,7 @@ impl Update {
         let package_path = package_path
             .parent()
             .ok_or_else(|| anyhow::anyhow!("Failed to get {package_path:?} parent"))?;
-        let commits_range = format!("{TAG_PREFIX}{}..HEAD", self.current_version);
+        let commits_range = format!("{}_v{}..HEAD", &self.name, self.current_version);
         let commits = self.get_commits_for_package(package_path, commits_range)?;
         let release = self.get_release(commits, &self.next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.config)?;

@@ -21,8 +21,7 @@ pub struct Publish {
 
 impl Publish {
     /// # Errors
-    #[allow(clippy::needless_pass_by_value)]
-    pub fn new(options: Options) -> Result<Self> {
+    pub fn new(options: &Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
         let client = SyncClient::new("boshen (boshenc@gmail.com)", Duration::from_millis(1000))
