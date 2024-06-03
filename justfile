@@ -3,6 +3,8 @@
 _default:
   @just --list -u
 
+alias r := ready
+
 init:
   cargo binstall cargo-watch taplo-cli
 
