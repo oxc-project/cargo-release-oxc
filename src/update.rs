@@ -11,7 +11,6 @@ use git_cliff_core::{
     changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
     DEFAULT_CONFIG,
 };
-use semver::Version;
 
 use crate::config::{ReleaseConfig, ReleaseSet, VersionedPackage};
 
@@ -33,12 +32,12 @@ pub struct Update {
     git_cliff_repo: Repository,
     git_cliff_config: Config,
     tags: Vec<GitTag>,
-    current_version: Version,
+    current_version: String,
 }
 
 #[derive(Debug, Clone)]
 struct GitTag {
-    version: Version,
+    version: String,
     sha: String,
 }
 
@@ -52,8 +51,6 @@ impl GitTag {
         } else {
             tag
         };
-        let version = Version::parse(&version)
-            .with_context(|| format!("version {version} should be semver"))?;
         Ok(Self { version, sha })
     }
 }
