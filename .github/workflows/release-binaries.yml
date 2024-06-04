@@ -38,8 +38,9 @@ jobs:
     steps:
       - uses: taiki-e/checkout-action@v1
 
-      - name: Install Rust
-        run: rustup update stable --no-self-update
+      - uses: Boshen/setup-rust@main
+        with:
+          save-cache: ${{ github.ref_name == 'main' }}
 
       - uses: taiki-e/setup-cross-toolchain-action@v1
         with:
