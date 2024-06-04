@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use cargo_metadata::MetadataCommand;
 use toml_edit::{DocumentMut, Formatted, Value};
 
@@ -19,26 +19,19 @@ pub struct CargoWorkspace {
 
 impl CargoWorkspace {
     pub fn new(path: &Path) -> Result<Self> {
-        let dir = path.parent().context("path should have a parent")?;
+        let dir = path.parent().unwrap();
         let metadata = MetadataCommand::new().current_dir(dir).no_deps().exec()?;
         let packages = metadata
             .workspace_packages()
             .into_iter()
             // `publish.is_none()` means `publish = true`.
             .filter(|p| p.publish.is_none())
-            .map(|p| {
-                Ok(VersionedPackage {
-                    name: p.name.clone(),
-                    dir: p
-                        .manifest_path
-                        .parent()
-                        .context("path should have a parent")?
-                        .as_std_path()
-                        .to_path_buf(),
-                    path: p.manifest_path.as_std_path().to_path_buf(),
-                })
+            .map(|p| VersionedPackage {
+                name: p.name.clone(),
+                dir: p.manifest_path.parent().unwrap().as_std_path().to_path_buf(),
+                path: p.manifest_path.as_std_path().to_path_buf(),
             })
-            .collect::<Result<Vec<_>>>()?;
+            .collect::<Vec<_>>();
         Ok(Self { path: path.to_path_buf(), packages })
     }
 
