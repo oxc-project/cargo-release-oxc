@@ -15,7 +15,7 @@ pub struct Options {
     #[bpaf(long, argument::<String>("NAME"))]
     release: String,
 
-    #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
+    #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
     path: PathBuf,
 }
 

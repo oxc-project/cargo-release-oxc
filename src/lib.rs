@@ -5,7 +5,7 @@ mod update;
 mod versioning;
 
 use std::{
-    path::Path,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 
@@ -42,4 +42,8 @@ fn check_git_clean(path: &Path) -> Result<()> {
         anyhow::bail!("Uncommitted changes found, please check `git status`.")
     }
     Ok(())
+}
+
+fn current_dir() -> Result<PathBuf, String> {
+    std::env::current_dir().map_err(|err| format!("{err:?}"))
 }
