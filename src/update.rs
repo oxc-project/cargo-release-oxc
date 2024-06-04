@@ -19,12 +19,16 @@ const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
 #[derive(Debug, Clone, Bpaf)]
 pub struct Options {
+    #[bpaf(long, argument::<String>("NAME"))]
+    release: String,
+
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
 }
 
 pub struct Update {
     cwd: PathBuf,
+    release_name: String,
     release_config: ReleaseConfig,
     git_cliff_repo: Repository,
     // git_command: GitCommand,
@@ -75,6 +79,7 @@ impl Update {
         let current_version = current_tag.version.clone();
         Ok(Self {
             cwd,
+            release_name: options.release,
             release_config: config,
             git_cliff_repo,
             // git_command,
@@ -85,14 +90,17 @@ impl Update {
     }
 
     pub fn run(self) -> Result<()> {
-        for release_set in &self.release_config.release_sets {
-            let next_version = self.calculate_next_version(release_set)?;
-            for package in release_set.versioned_packages() {
-                self.generate_changelog_for_package(&release_set.name, &package, &next_version)?;
-            }
-            release_set.update_version(&next_version)?;
-            println!("{next_version}");
+        let Some(release_set) =
+            self.release_config.release_sets.iter().find(|r| r.name == self.release_name)
+        else {
+            anyhow::bail!("release {} not found", self.release_name);
+        };
+        let next_version = self.calculate_next_version(release_set)?;
+        for package in release_set.versioned_packages() {
+            self.generate_changelog_for_package(&release_set.name, &package, &next_version)?;
         }
+        release_set.update_version(&next_version)?;
+        println!("{next_version}");
         Ok(())
     }
 
