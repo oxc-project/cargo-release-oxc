@@ -24,11 +24,6 @@ impl CargoCommand {
         Self { current_dir }
     }
 
-    // pub fn check(&self) -> Result<()> {
-    // self.run(&["check", "--all-features", "--all-targets"])?;
-    // Ok(())
-    // }
-
     pub fn publish(&self, package_name: &str) -> Result<()> {
         let args = &["--color", "always", "publish", "-p", package_name];
         let output = self.run(args)?;

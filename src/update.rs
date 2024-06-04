@@ -1,6 +1,7 @@
 use std::{
     fs::{self, File},
     path::{Path, PathBuf},
+    process::{Command, Stdio},
     time::{SystemTime, UNIX_EPOCH},
 };
 
@@ -10,7 +11,6 @@ use git_cliff_core::{
     changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
     DEFAULT_CONFIG,
 };
-// use git_cmd::Repo as GitCommand;
 use semver::Version;
 
 use crate::config::{ReleaseConfig, ReleaseSet, VersionedPackage};
@@ -31,7 +31,6 @@ pub struct Update {
     release_name: String,
     release_config: ReleaseConfig,
     git_cliff_repo: Repository,
-    // git_command: GitCommand,
     git_cliff_config: Config,
     tags: Vec<GitTag>,
     current_version: Version,
@@ -59,13 +58,26 @@ impl GitTag {
     }
 }
 
+fn check_git_clean(path: &Path) -> Result<()> {
+    let git_status = Command::new("git")
+        .current_dir(path)
+        .stdout(Stdio::null())
+        .args(["diff", "--exit-code"])
+        .status();
+    if !git_status.is_ok_and(|s| s.success()) {
+        anyhow::bail!("Uncommitted changes found, please check `git status`.")
+    }
+    Ok(())
+}
+
 impl Update {
     pub fn new(options: Options) -> Result<Self> {
         let cwd = options.path;
-        let config = ReleaseConfig::new(&cwd)?;
 
+        check_git_clean(&cwd)?;
+
+        let config = ReleaseConfig::new(&cwd)?;
         let git_cliff_repo = Repository::init(cwd.clone())?;
-        // let git_command = GitCommand::new(&metadata.workspace_root)?;
         let git_cliff_config = Config::parse(&cwd.join(DEFAULT_CONFIG))?;
         let tag_pattern = &git_cliff_config.git.tag_pattern;
         let tags = git_cliff_repo
@@ -82,7 +94,6 @@ impl Update {
             release_name: options.release,
             release_config: config,
             git_cliff_repo,
-            // git_command,
             git_cliff_config,
             tags,
             current_version,
