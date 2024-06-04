@@ -9,6 +9,6 @@ fn main() -> Result<()> {
         ReleaseCommand::RegenerateChangelogs(options) => {
             Update::new(options)?.regenerate_changelogs()
         }
-        ReleaseCommand::Publish(options) => Publish::new(&options)?.run(),
+        ReleaseCommand::Publish(options) => Publish::new(options)?.run(),
     }
 }

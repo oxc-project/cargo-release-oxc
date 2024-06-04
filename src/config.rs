@@ -14,7 +14,17 @@ const RELEASE_CONFIG: &str = "oxc_release.toml";
 #[serde(deny_unknown_fields)]
 pub struct ReleaseConfig {
     #[serde(rename = "releases")]
-    pub release_sets: Vec<ReleaseSet>,
+    release_sets: Vec<ReleaseSet>,
+}
+
+impl ReleaseConfig {
+    pub fn get_release(self, release_name: &str) -> Result<ReleaseSet> {
+        if let Some(release_set) = self.release_sets.into_iter().find(|r| r.name == release_name) {
+            Ok(release_set)
+        } else {
+            anyhow::bail!("release {} not found", release_name);
+        }
+    }
 }
 
 #[derive(Debug, Deserialize)]

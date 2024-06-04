@@ -4,6 +4,12 @@ mod publish;
 mod update;
 mod versioning;
 
+use std::{
+    path::Path,
+    process::{Command, Stdio},
+};
+
+use anyhow::Result;
 use bpaf::Bpaf;
 
 pub use self::{
@@ -24,4 +30,16 @@ pub enum ReleaseCommand {
 
     #[bpaf(command)]
     Publish(#[bpaf(external(publish_options))] PublishOptions),
+}
+
+fn check_git_clean(path: &Path) -> Result<()> {
+    let git_status = Command::new("git")
+        .current_dir(path)
+        .stdout(Stdio::null())
+        .args(["diff", "--exit-code"])
+        .status();
+    if !git_status.is_ok_and(|s| s.success()) {
+        anyhow::bail!("Uncommitted changes found, please check `git status`.")
+    }
+    Ok(())
 }

@@ -5,28 +5,41 @@ use bpaf::Bpaf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use crates_io_api::SyncClient;
 
-use crate::cargo_command::CargoCommand;
+use crate::{
+    cargo_command::CargoCommand,
+    config::{ReleaseConfig, ReleaseSet},
+};
 
 #[derive(Debug, Clone, Bpaf)]
 pub struct Options {
+    #[bpaf(long, argument::<String>("NAME"))]
+    release: String,
+
     #[bpaf(positional("PATH"), fallback(PathBuf::from(".")))]
     path: PathBuf,
 }
 
 pub struct Publish {
+    release_set: ReleaseSet,
     metadata: Metadata,
     cargo: CargoCommand,
     client: SyncClient,
 }
 
 impl Publish {
-    pub fn new(options: &Options) -> Result<Self> {
-        let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
+    pub fn new(options: Options) -> Result<Self> {
+        let cwd = options.path;
+
+        super::check_git_clean(&cwd)?;
+
+        let release_set = ReleaseConfig::new(&cwd)?.get_release(&options.release)?;
+
+        let metadata = MetadataCommand::new().current_dir(&cwd).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
         let client =
             SyncClient::new("Boshen@users.noreply.github.com", Duration::from_millis(1000))
                 .context("failed to get client")?;
-        Ok(Self { metadata, cargo, client })
+        Ok(Self { release_set, metadata, cargo, client })
     }
 
     pub fn run(self) -> Result<()> {
@@ -41,17 +54,19 @@ impl Publish {
         let packages = release_order::release_order(&packages)?;
         let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
 
-        println!("Checking");
         self.cargo.run(&["check", "--all-features", "--all-targets"])?;
 
-        println!("Publishing packages: {packages:?}");
+        eprintln!("Publishing packages: {packages:?}");
         for package in &packages {
             if self.is_already_published(package, &root_version)? {
                 continue;
             }
             self.cargo.publish(package)?;
         }
-        println!("Published packages: {packages:?}");
+        eprintln!("Published packages: {packages:?}");
+
+        println!("{}_v{root_version}", self.release_set.name);
+
         Ok(())
     }
 
