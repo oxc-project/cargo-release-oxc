@@ -63,9 +63,10 @@ impl Update {
 
         let git_cliff_repo = Repository::init(cwd.clone())?;
         let git_cliff_config = Config::parse(&cwd.join(DEFAULT_CONFIG))?;
-        let tag_pattern = &git_cliff_config.git.tag_pattern;
+        let tag_pattern = regex::Regex::new(&format!("^{}_v[0-9]*", options.release))
+            .context("failed to make regex")?;
         let tags = git_cliff_repo
-            .tags(tag_pattern, git_cliff_config.git.topo_order.unwrap_or(false))?
+            .tags(&Some(tag_pattern.clone()), /* topo_order */ false)?
             .into_iter()
             .map(GitTag::new)
             .collect::<Result<Vec<_>>>()?;
@@ -80,15 +81,20 @@ impl Update {
         let release_set = &self.release_set;
         let next_version = self.calculate_next_version(release_set)?;
         for package in release_set.versioned_packages() {
-            self.generate_changelog_for_package(&release_set.name, &package, &next_version)?;
+            self.generate_changelog_for_package(&release_set, &package, &next_version)?;
         }
         release_set.update_version(&next_version)?;
+        self.generate_changelog_for_release(release_set, &next_version)?;
         println!("{next_version}");
         Ok(())
     }
 
+    fn commits_range(&self, release_set: &ReleaseSet) -> String {
+        format!("{}_v{}..HEAD", &release_set.name, self.current_version)
+    }
+
     fn calculate_next_version(&self, release_set: &ReleaseSet) -> Result<String> {
-        let commits_range = format!("{}_v{}..HEAD", &release_set.name, self.current_version);
+        let commits_range = self.commits_range(release_set);
         let include_paths = release_set
             .versioned_packages()
             .iter()
@@ -118,20 +124,6 @@ impl Update {
         let next_version =
             changelog.bump_version().context("bump failed")?.context("bump failed")?;
         Ok(next_version)
-    }
-
-    fn generate_changelog_for_package(
-        &self,
-        name: &str,
-        package: &VersionedPackage,
-        next_version: &str,
-    ) -> Result<()> {
-        let commits_range = format!("{}_v{}..HEAD", name, self.current_version);
-        let commits = self.get_commits_for_package(package, commits_range)?;
-        let release = self.get_release(commits, next_version, None)?;
-        let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
-        Self::save_changelog(&package.dir, &changelog)?;
-        Ok(())
     }
 
     fn get_commits_for_package(
@@ -185,6 +177,45 @@ impl Update {
         let prev_changelog_string = fs::read_to_string(&changelog_path).unwrap_or_default();
         let mut out = File::create(&changelog_path)?;
         changelog.prepend(prev_changelog_string, &mut out)?;
+        Ok(())
+    }
+
+    fn generate_changelog_for_package(
+        &self,
+        release_set: &ReleaseSet,
+        package: &VersionedPackage,
+        next_version: &str,
+    ) -> Result<()> {
+        let commits_range = self.commits_range(release_set);
+        let commits = self.get_commits_for_package(package, commits_range)?;
+        let release = self.get_release(commits, next_version, None)?;
+        let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
+        Self::save_changelog(&package.dir, &changelog)?;
+        Ok(())
+    }
+
+    fn generate_changelog_for_release(
+        &self,
+        release_set: &ReleaseSet,
+        next_version: &str,
+    ) -> Result<()> {
+        let commits_range = self.commits_range(release_set);
+        let include_paths = release_set
+            .versioned_packages()
+            .iter()
+            .map(|package| self.get_include_pattern(package))
+            .collect::<Result<Vec<_>>>()?;
+        let commits = self
+            .git_cliff_repo
+            .commits(Some(commits_range), Some(include_paths), None)?
+            .iter()
+            .map(Commit::from)
+            .collect::<Vec<_>>();
+        let release = self.get_release(commits, next_version, None)?;
+        let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
+        let mut s = vec![];
+        changelog.generate(&mut s).context("failed to generate changelog")?;
+        println!("{}", String::from_utf8(s).unwrap());
         Ok(())
     }
 

@@ -165,6 +165,7 @@ dependencies = [
  "crates_io_api",
  "git-cliff-core",
  "glob",
+ "regex",
  "serde",
  "serde_json",
  "toml",

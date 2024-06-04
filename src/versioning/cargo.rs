@@ -4,35 +4,56 @@ use std::{
     str::FromStr,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use cargo_metadata::MetadataCommand;
 use toml_edit::{DocumentMut, Formatted, Value};
 
 use crate::config::VersionedPackage;
 
 #[derive(Debug)]
-pub struct CargoWorkspace {
+pub struct CargoToml {
     path: PathBuf,
+
+    is_workspace: bool,
 
     packages: Vec<VersionedPackage>,
 }
 
-impl CargoWorkspace {
+impl CargoToml {
     pub fn new(path: &Path) -> Result<Self> {
         let dir = path.parent().unwrap();
-        let metadata = MetadataCommand::new().current_dir(dir).no_deps().exec()?;
-        let packages = metadata
-            .workspace_packages()
-            .into_iter()
-            // `publish.is_none()` means `publish = true`.
-            .filter(|p| p.publish.is_none())
-            .map(|p| VersionedPackage {
-                name: p.name.clone(),
-                dir: p.manifest_path.parent().unwrap().as_std_path().to_path_buf(),
-                path: p.manifest_path.as_std_path().to_path_buf(),
-            })
-            .collect::<Vec<_>>();
-        Ok(Self { path: path.to_path_buf(), packages })
+
+        let toml = DocumentMut::from_str(&fs::read_to_string(path)?)?;
+        let is_workspace = toml.contains_key("workspace");
+
+        let packages = if is_workspace {
+            let metadata = MetadataCommand::new().current_dir(dir).no_deps().exec()?;
+            metadata
+                .workspace_packages()
+                .into_iter()
+                // `publish.is_none()` means `publish = true`.
+                .filter(|p| p.publish.is_none())
+                .map(|p| VersionedPackage {
+                    name: p.name.clone(),
+                    dir: p.manifest_path.parent().unwrap().as_std_path().to_path_buf(),
+                    path: p.manifest_path.as_std_path().to_path_buf(),
+                })
+                .collect::<Vec<_>>()
+        } else {
+            vec![VersionedPackage {
+                name: toml
+                    .get("package")
+                    .and_then(|item| item.as_table())
+                    .and_then(|table| table.get("name"))
+                    .and_then(|value| value.as_str())
+                    .context("expect package name")?
+                    .to_string(),
+                dir: path.parent().unwrap().to_path_buf(),
+                path: path.to_path_buf(),
+            }]
+        };
+
+        Ok(Self { path: path.to_path_buf(), is_workspace, packages })
     }
 
     pub fn packages(&self) -> Vec<VersionedPackage> {
@@ -40,25 +61,28 @@ impl CargoWorkspace {
     }
 
     pub fn update_version(&self, version: &str) -> Result<()> {
-        let mut workspace_toml = CargoToml::new(&self.path)?;
-
+        if self.is_workspace {
+            let mut workspace_toml = CargoTomlFile::new(&self.path)?;
+            for package in &self.packages {
+                workspace_toml.set_workspace_dependency_version(&package.name, version)?;
+            }
+            workspace_toml.save()?;
+        }
         for package in &self.packages {
-            workspace_toml.set_workspace_dependency_version(&package.name, version)?;
-            let mut package_toml = CargoToml::new(&package.path)?;
+            let mut package_toml = CargoTomlFile::new(&package.path)?;
             package_toml.set_package_version(version)?;
             package_toml.save()?;
         }
-
-        workspace_toml.save()
+        Ok(())
     }
 }
 
-struct CargoToml {
+struct CargoTomlFile {
     path: PathBuf,
     toml: DocumentMut,
 }
 
-impl CargoToml {
+impl CargoTomlFile {
     fn new(path: &Path) -> Result<Self> {
         let toml = DocumentMut::from_str(&fs::read_to_string(path)?)?;
         Ok(Self { path: path.to_path_buf(), toml })
