@@ -1,5 +1,5 @@
 mod cargo_command;
-pub mod config;
+mod config;
 mod publish;
 mod update;
 mod versioning;

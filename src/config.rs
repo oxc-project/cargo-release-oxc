@@ -6,7 +6,7 @@ use std::{
 use anyhow::{Context, Result};
 use serde::Deserialize;
 
-use crate::versioning::cargo::CargoWorkspace;
+use crate::versioning::{cargo::CargoWorkspace, package_json::PackageJson};
 
 const RELEASE_CONFIG: &str = "oxc_release.toml";
 
@@ -53,6 +53,7 @@ pub enum VersionedContent {
     #[default]
     None,
     Cargo(CargoWorkspace),
+    PackageJson(PackageJson),
 }
 
 #[derive(Debug, Clone)]
@@ -68,6 +69,7 @@ impl VersionedContent {
             path.file_name().with_context(|| format!("{path:?} does not have a filename."))?;
         let content = match file_name.to_string_lossy().as_ref() {
             "Cargo.toml" => Self::Cargo(CargoWorkspace::new(path)?),
+            "package.json" => Self::PackageJson(PackageJson::new(path)?),
             _ => anyhow::bail!("{path:?} is not recognized"),
         };
         Ok(content)
@@ -77,7 +79,8 @@ impl VersionedContent {
     pub fn versioned_packages(&self) -> Vec<VersionedPackage> {
         match self {
             Self::None => vec![],
-            Self::Cargo(cargo) => cargo.packages.clone(),
+            Self::Cargo(cargo) => cargo.packages(),
+            Self::PackageJson(package_json) => package_json.packages(),
         }
     }
 
@@ -85,6 +88,7 @@ impl VersionedContent {
         match self {
             Self::None => Ok(()),
             Self::Cargo(cargo) => cargo.update_version(version),
+            Self::PackageJson(package_json) => package_json.update_version(version),
         }
     }
 }

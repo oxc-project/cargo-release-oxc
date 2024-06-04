@@ -15,16 +15,15 @@ all                         = { level = "warn", priority = -1 }
 pedantic                    = { level = "warn", priority = -1 }
 nursery                     = { level = "warn", priority = -1 }
 dbg_macro                   = "warn"
-unwrap_used                 = "warn"
 empty_drop                  = "warn"
 exit                        = "warn"
 empty_structs_with_brackets = "warn"
 rc_buffer                   = "warn"
 rc_mutex                    = "warn"
 same_name_method            = "warn"
-missing_errors_doc = "allow"
-missing_panics_doc = "allow"
-module_name_repetitions = "allow"
+missing_errors_doc          = "allow"
+missing_panics_doc          = "allow"
+module_name_repetitions     = "allow"
 
 [lib]
 doctest = false
@@ -46,3 +45,4 @@ git_cmd        = "0.6.4"
 crates_io_api  = { version = "0.11.0", default-features = false, features = ["rustls"] }
 toml           = "0.8.13"
 serde          = "1.0.203"
+serde_json     = { version = "1.0.117", features = ["preserve_order"] }

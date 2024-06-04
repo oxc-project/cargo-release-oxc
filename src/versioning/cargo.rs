@@ -14,7 +14,7 @@ use crate::config::VersionedPackage;
 pub struct CargoWorkspace {
     path: PathBuf,
 
-    pub packages: Vec<VersionedPackage>,
+    packages: Vec<VersionedPackage>,
 }
 
 impl CargoWorkspace {
@@ -40,6 +40,10 @@ impl CargoWorkspace {
             })
             .collect::<Result<Vec<_>>>()?;
         Ok(Self { path: path.to_path_buf(), packages })
+    }
+
+    pub fn packages(&self) -> Vec<VersionedPackage> {
+        self.packages.clone()
     }
 
     pub fn update_version(&self, version: &str) -> Result<()> {
