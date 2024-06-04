@@ -20,16 +20,15 @@ pub struct Publish {
 }
 
 impl Publish {
-    /// # Errors
     pub fn new(options: &Options) -> Result<Self> {
         let metadata = MetadataCommand::new().current_dir(&options.path).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
-        let client = SyncClient::new("boshen (boshenc@gmail.com)", Duration::from_millis(1000))
-            .context("failed to get client")?;
+        let client =
+            SyncClient::new("Boshen@users.noreply.github.com", Duration::from_millis(1000))
+                .context("failed to get client")?;
         Ok(Self { metadata, cargo, client })
     }
 
-    /// # Errors
     pub fn run(self) -> Result<()> {
         let packages = self.get_packages();
 

@@ -22,6 +22,9 @@ empty_structs_with_brackets = "warn"
 rc_buffer                   = "warn"
 rc_mutex                    = "warn"
 same_name_method            = "warn"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
 
 [lib]
 doctest = false
@@ -41,3 +44,5 @@ toml_edit      = { version = "0.22.12", features = ["parse"] }
 semver         = "1.0.22"
 git_cmd        = "0.6.4"
 crates_io_api  = { version = "0.11.0", default-features = false, features = ["rustls"] }
+toml           = "0.8.13"
+serde          = "1.0.203"

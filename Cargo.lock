@@ -167,6 +167,8 @@ dependencies = [
  "git_cmd",
  "glob",
  "semver",
+ "serde",
+ "toml",
  "toml_edit",
 ]
 
