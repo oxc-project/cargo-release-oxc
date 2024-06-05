@@ -81,7 +81,7 @@ impl Update {
         let release_set = &self.release_set;
         let next_version = self.calculate_next_version(release_set)?;
         for package in release_set.versioned_packages() {
-            self.generate_changelog_for_package(&release_set, &package, &next_version)?;
+            self.generate_changelog_for_package(release_set, &package, &next_version)?;
         }
         release_set.update_version(&next_version)?;
         self.generate_changelog_for_release(release_set, &next_version)?;
