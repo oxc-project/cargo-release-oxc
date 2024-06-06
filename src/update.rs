@@ -212,7 +212,9 @@ impl Update {
             .map(Commit::from)
             .collect::<Vec<_>>();
         let release = self.get_release(commits, next_version, None)?;
-        let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
+        let mut git_cliff_config = self.git_cliff_config.clone();
+        git_cliff_config.changelog.header = None;
+        let changelog = Changelog::new(vec![release], &git_cliff_config)?;
         let mut s = vec![];
         changelog.generate(&mut s).context("failed to generate changelog")?;
         println!("{}", String::from_utf8(s).unwrap());
