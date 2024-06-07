@@ -26,11 +26,15 @@ pub struct Options {
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options("release-oxc"))]
 pub enum ReleaseCommand {
-    /// Generate CHANGELOG.md and bump versions for all published crates
+    /// Generate CHANGELOG.md and bump versions for all published packages.
     #[bpaf(command)]
     Update(#[bpaf(external(options))] Options),
 
-    /// Regenerate CHANGELOG.md.
+    /// Generate changelog summary.
+    #[bpaf(command)]
+    Changelog(#[bpaf(external(options))] Options),
+
+    /// Regenerate CHANGELOG.md for all published packages.
     #[bpaf(command)]
     RegenerateChangelogs(#[bpaf(external(options))] Options),
 

@@ -71,14 +71,20 @@ impl Update {
     }
 
     pub fn run(self) -> Result<()> {
-        let release_set = &self.release_set;
-        let next_version = self.calculate_next_version(release_set)?;
-        for package in release_set.versioned_packages() {
-            self.generate_changelog_for_package(release_set, &package, &next_version)?;
+        let next_version = self.calculate_next_version()?;
+        for package in self.release_set.versioned_packages() {
+            self.generate_changelog_for_package(&package, &next_version)?;
         }
-        release_set.update_version(&next_version)?;
-        self.generate_changelog_for_release(release_set, &next_version)?;
+        self.release_set.update_version(&next_version)?;
+        self.generate_changelog_for_release(&next_version)?;
         println!("{next_version}");
+        Ok(())
+    }
+
+    pub fn changelog_for_release(self) -> Result<()> {
+        dbg!("in");
+        let next_version = self.calculate_next_version()?;
+        self.generate_changelog_for_release(&next_version)?;
         Ok(())
     }
 
@@ -86,7 +92,8 @@ impl Update {
         format!("{}_v{}..HEAD", &release_set.name, self.current_version)
     }
 
-    fn calculate_next_version(&self, release_set: &ReleaseSet) -> Result<String> {
+    fn calculate_next_version(&self) -> Result<String> {
+        let release_set = &self.release_set;
         let commits_range = self.commits_range(release_set);
         let include_paths = release_set
             .versioned_packages()
@@ -175,11 +182,10 @@ impl Update {
 
     fn generate_changelog_for_package(
         &self,
-        release_set: &ReleaseSet,
         package: &VersionedPackage,
         next_version: &str,
     ) -> Result<()> {
-        let commits_range = self.commits_range(release_set);
+        let commits_range = self.commits_range(&self.release_set);
         let commits = self.get_commits_for_package(package, commits_range)?;
         let release = self.get_release(commits, next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
@@ -187,11 +193,8 @@ impl Update {
         Ok(())
     }
 
-    fn generate_changelog_for_release(
-        &self,
-        release_set: &ReleaseSet,
-        next_version: &str,
-    ) -> Result<()> {
+    fn generate_changelog_for_release(&self, next_version: &str) -> Result<()> {
+        let release_set = &self.release_set;
         let commits_range = self.commits_range(release_set);
         let include_paths = release_set
             .versioned_packages()
