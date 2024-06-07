@@ -18,6 +18,18 @@ pub struct ReleaseConfig {
 }
 
 impl ReleaseConfig {
+    pub fn new(cwd: &Path) -> Result<Self> {
+        let s =
+            fs::read_to_string(cwd.join(RELEASE_CONFIG)).context("failed to read release.toml")?;
+        let mut config: Self = toml::from_str(&s).context("failed to parse release.toml")?;
+        for release_set in &mut config.release_sets {
+            for versioned_file in &mut release_set.versioned_files {
+                versioned_file.content = VersionedContent::read(&cwd.join(&versioned_file.path))?;
+            }
+        }
+        Ok(config)
+    }
+
     pub fn get_release(self, release_name: &str) -> Result<ReleaseSet> {
         if let Some(release_set) = self.release_sets.into_iter().find(|r| r.name == release_name) {
             Ok(release_set)
@@ -46,6 +58,10 @@ impl ReleaseSet {
             versioned_file.content.update_version(version)?;
         }
         Ok(())
+    }
+
+    pub fn commits_range(&self, version: &str) -> String {
+        format!("{}_v{version}..HEAD", &self.name)
     }
 }
 
@@ -100,19 +116,5 @@ impl VersionedContent {
             Self::Cargo(cargo) => cargo.update_version(version),
             Self::PackageJson(package_json) => package_json.update_version(version),
         }
-    }
-}
-
-impl ReleaseConfig {
-    pub fn new(cwd: &Path) -> Result<Self> {
-        let s =
-            fs::read_to_string(cwd.join(RELEASE_CONFIG)).context("failed to read release.toml")?;
-        let mut config: Self = toml::from_str(&s).context("failed to parse release.toml")?;
-        for release_set in &mut config.release_sets {
-            for versioned_file in &mut release_set.versioned_files {
-                versioned_file.content = VersionedContent::read(&cwd.join(&versioned_file.path))?;
-            }
-        }
-        Ok(config)
     }
 }

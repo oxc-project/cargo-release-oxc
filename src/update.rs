@@ -17,15 +17,6 @@ use crate::{
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
-pub struct Update {
-    cwd: PathBuf,
-    release_set: ReleaseSet,
-    git_cliff_repo: Repository,
-    git_cliff_config: Config,
-    tags: Vec<GitTag>,
-    current_version: String,
-}
-
 #[derive(Debug, Clone)]
 struct GitTag {
     version: String,
@@ -44,6 +35,15 @@ impl GitTag {
         };
         Ok(Self { version, sha })
     }
+}
+
+pub struct Update {
+    cwd: PathBuf,
+    release_set: ReleaseSet,
+    git_cliff_repo: Repository,
+    git_cliff_config: Config,
+    tags: Vec<GitTag>,
+    current_version: String,
 }
 
 impl Update {
@@ -70,42 +70,24 @@ impl Update {
         Ok(Self { cwd, release_set, git_cliff_repo, git_cliff_config, tags, current_version })
     }
 
-    pub fn run(self) -> Result<()> {
-        let next_version = self.calculate_next_version()?;
+    pub fn run(&self) -> Result<()> {
+        let next_version = self.changelog_for_release()?;
         for package in self.release_set.versioned_packages() {
             self.generate_changelog_for_package(&package, &next_version)?;
         }
         self.release_set.update_version(&next_version)?;
-        self.generate_changelog_for_release(&next_version)?;
-        println!("{next_version}");
         Ok(())
     }
 
-    pub fn changelog_for_release(self) -> Result<()> {
-        dbg!("in");
+    pub fn changelog_for_release(&self) -> Result<String> {
         let next_version = self.calculate_next_version()?;
-        self.generate_changelog_for_release(&next_version)?;
-        Ok(())
-    }
-
-    fn commits_range(&self, release_set: &ReleaseSet) -> String {
-        format!("{}_v{}..HEAD", &release_set.name, self.current_version)
+        self.print_changelog_for_release(&next_version)?;
+        println!("{next_version}");
+        Ok(next_version)
     }
 
     fn calculate_next_version(&self) -> Result<String> {
-        let release_set = &self.release_set;
-        let commits_range = self.commits_range(release_set);
-        let include_paths = release_set
-            .versioned_packages()
-            .iter()
-            .map(|package| self.get_include_pattern(package))
-            .collect::<Result<Vec<_>>>()?;
-        let commits = self
-            .git_cliff_repo
-            .commits(Some(commits_range), Some(include_paths), None)?
-            .iter()
-            .map(Commit::from)
-            .collect::<Vec<_>>();
+        let commits = self.get_commits_for_release()?;
         let previous = Release {
             version: Some(self.current_version.to_string()),
             commits: vec![],
@@ -148,7 +130,7 @@ impl Update {
     }
 
     #[allow(clippy::cast_possible_wrap)]
-    fn get_release<'a>(
+    fn get_git_cliff_release<'a>(
         &self,
         commits: Vec<Commit<'a>>,
         next_version: &str,
@@ -185,17 +167,17 @@ impl Update {
         package: &VersionedPackage,
         next_version: &str,
     ) -> Result<()> {
-        let commits_range = self.commits_range(&self.release_set);
+        let commits_range = self.release_set.commits_range(&self.current_version);
         let commits = self.get_commits_for_package(package, commits_range)?;
-        let release = self.get_release(commits, next_version, None)?;
+        let release = self.get_git_cliff_release(commits, next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
         Self::save_changelog(&package.dir, &changelog)?;
         Ok(())
     }
 
-    fn generate_changelog_for_release(&self, next_version: &str) -> Result<()> {
+    fn get_commits_for_release(&self) -> Result<Vec<Commit<'_>>> {
         let release_set = &self.release_set;
-        let commits_range = self.commits_range(release_set);
+        let commits_range = release_set.commits_range(&self.current_version);
         let include_paths = release_set
             .versioned_packages()
             .iter()
@@ -207,7 +189,12 @@ impl Update {
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
-        let release = self.get_release(commits, next_version, None)?;
+        Ok(commits)
+    }
+
+    fn print_changelog_for_release(&self, next_version: &str) -> Result<()> {
+        let commits = self.get_commits_for_release()?;
+        let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut git_cliff_config = self.git_cliff_config.clone();
         git_cliff_config.changelog.header = None;
         let changelog = Changelog::new(vec![release], &git_cliff_config)?;
@@ -225,7 +212,8 @@ impl Update {
                 let to = &pair[1];
                 let commits_range = format!("{}..{}", from.sha, to.sha);
                 let commits = self.get_commits_for_package(&package, commits_range)?;
-                let release = self.get_release(commits, &to.version.to_string(), Some(&to.sha))?;
+                let release =
+                    self.get_git_cliff_release(commits, &to.version.to_string(), Some(&to.sha))?;
                 releases.push(release);
             }
             let changelog = Changelog::new(releases, &self.git_cliff_config)?;
