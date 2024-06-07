@@ -5,24 +5,17 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use bpaf::Bpaf;
 use git_cliff_core::{
     changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
     DEFAULT_CONFIG,
 };
 
-use crate::config::{ReleaseConfig, ReleaseSet, VersionedPackage};
+use crate::{
+    config::{ReleaseConfig, ReleaseSet, VersionedPackage},
+    Options,
+};
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
-
-#[derive(Debug, Clone, Bpaf)]
-pub struct Options {
-    #[bpaf(long, argument::<String>("NAME"))]
-    release: String,
-
-    #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
-    path: PathBuf,
-}
 
 pub struct Update {
     cwd: PathBuf,

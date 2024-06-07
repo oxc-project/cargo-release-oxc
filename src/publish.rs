@@ -1,23 +1,14 @@
-use std::{path::PathBuf, time::Duration};
+use std::time::Duration;
 
 use anyhow::{Context, Result};
-use bpaf::Bpaf;
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use crates_io_api::SyncClient;
 
 use crate::{
     cargo_command::CargoCommand,
     config::{ReleaseConfig, ReleaseSet},
+    Options,
 };
-
-#[derive(Debug, Clone, Bpaf)]
-pub struct Options {
-    #[bpaf(long, argument::<String>("NAME"))]
-    release: String,
-
-    #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
-    path: PathBuf,
-}
 
 pub struct Publish {
     release_set: ReleaseSet,
