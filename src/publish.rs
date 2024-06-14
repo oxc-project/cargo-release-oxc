@@ -46,8 +46,6 @@ impl Publish {
         let packages = release_order::release_order(&packages)?;
         let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
 
-        self.cargo.run(&["check", "--all-features", "--all-targets"])?;
-
         eprintln!("Publishing packages: {packages:?}");
         for package in &packages {
             if self.is_already_published(package, &root_version)? {
