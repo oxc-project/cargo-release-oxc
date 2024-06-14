@@ -19,6 +19,9 @@ pub struct Options {
     #[bpaf(long, argument::<String>("NAME"))]
     release: String,
 
+    #[bpaf(switch, fallback(false))]
+    dry_run: bool,
+
     #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
     path: PathBuf,
 }

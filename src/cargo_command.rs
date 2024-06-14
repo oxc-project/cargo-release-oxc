@@ -24,9 +24,12 @@ impl CargoCommand {
         Self { current_dir }
     }
 
-    pub fn publish(&self, package_name: &str) -> Result<()> {
-        let args = &["--color", "always", "publish", "-p", package_name];
-        let output = self.run(args)?;
+    pub fn publish(&self, package_name: &str, dry_run: bool) -> Result<()> {
+        let mut args = vec!["--color", "always", "publish", "-p", package_name];
+        if dry_run {
+            args.push("--dry-run");
+        }
+        let output = self.run(&args)?;
         if !output.status.success()
             || !output.stderr.contains("Uploading")
             || output.stderr.contains("error:")

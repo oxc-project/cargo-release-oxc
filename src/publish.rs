@@ -15,6 +15,7 @@ pub struct Publish {
     metadata: Metadata,
     cargo: CargoCommand,
     client: SyncClient,
+    dry_run: bool,
 }
 
 impl Publish {
@@ -30,7 +31,7 @@ impl Publish {
         let client =
             SyncClient::new("Boshen@users.noreply.github.com", Duration::from_millis(1000))
                 .context("failed to get client")?;
-        Ok(Self { release_set, metadata, cargo, client })
+        Ok(Self { release_set, metadata, cargo, client, dry_run: options.dry_run })
     }
 
     pub fn run(self) -> Result<()> {
@@ -52,7 +53,7 @@ impl Publish {
             if self.is_already_published(package, &root_version)? {
                 continue;
             }
-            self.cargo.publish(package)?;
+            self.cargo.publish(package, self.dry_run)?;
         }
         eprintln!("Published packages: {packages:?}");
 
