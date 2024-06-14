@@ -82,7 +82,7 @@ impl Update {
     pub fn changelog_for_release(&self) -> Result<String> {
         let next_version = self.calculate_next_version()?;
         self.print_changelog_for_release(&next_version)?;
-        println!("{next_version}");
+        fs::write("./target/OXC_VERSION", &next_version)?;
         Ok(next_version)
     }
 
@@ -200,7 +200,7 @@ impl Update {
         let changelog = Changelog::new(vec![release], &git_cliff_config)?;
         let mut s = vec![];
         changelog.generate(&mut s).context("failed to generate changelog")?;
-        println!("{}", String::from_utf8(s).unwrap());
+        fs::write("./target/OXC_CHANGELOG", String::from_utf8(s).unwrap())?;
         Ok(())
     }
 

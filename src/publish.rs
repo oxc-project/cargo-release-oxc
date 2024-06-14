@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{fs, time::Duration};
 
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata, MetadataCommand, Package};
@@ -56,7 +56,8 @@ impl Publish {
         }
         eprintln!("Published packages: {packages:?}");
 
-        println!("{}_v{root_version}", self.release_set.name);
+        let version = format!("{}_v{root_version}", self.release_set.name);
+        fs::write("./target/OXC_VERSION", version)?;
 
         Ok(())
     }
@@ -66,7 +67,7 @@ impl Publish {
         let versions = krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>();
         let is_already_published = versions.iter().any(|v| v == root_version);
         if is_already_published {
-            println!("Already published {package} {root_version}");
+            eprintln!("Already published {package} {root_version}");
         }
         Ok(is_already_published)
     }
