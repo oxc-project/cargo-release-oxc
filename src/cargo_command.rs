@@ -11,7 +11,7 @@ const CARGO_REGISTRY_TOKEN: &str = "CARGO_REGISTRY_TOKEN";
 
 pub struct CmdOutput {
     pub status: ExitStatus,
-    pub stdout: String,
+    // pub stdout: String,
     pub stderr: String,
 }
 
@@ -68,9 +68,9 @@ impl CargoCommand {
 
         let output = child.wait_with_output()?;
 
-        let output_stdout = String::from_utf8(output.stdout)?;
+        // let output_stdout = String::from_utf8(output.stdout)?;
         let output_stderr = stderr_lines.join("\n");
 
-        Ok(CmdOutput { status: output.status, stdout: output_stdout, stderr: output_stderr })
+        Ok(CmdOutput { status: output.status, stderr: output_stderr })
     }
 }
