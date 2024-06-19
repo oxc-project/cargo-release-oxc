@@ -16,12 +16,15 @@ pub use self::{publish::Publish, update::Update};
 
 #[derive(Debug, Clone, Bpaf)]
 pub struct Options {
+    /// Select the release specified in `oxc_release.toml`.
     #[bpaf(long, argument::<String>("NAME"))]
     release: String,
 
+    /// Run `cargo publish` with `--dry-run`
     #[bpaf(switch, fallback(false))]
     dry_run: bool,
 
+    /// Optional path to directory, defaults to current working directory.
     #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
     path: PathBuf,
 }
@@ -41,6 +44,7 @@ pub enum ReleaseCommand {
     #[bpaf(command)]
     RegenerateChangelogs(#[bpaf(external(options))] Options),
 
+    /// Publish all `versioned_files` specified in `oxc_release.toml`.
     #[bpaf(command)]
     Publish(#[bpaf(external(options))] Options),
 }
