@@ -48,7 +48,7 @@ impl Publish {
 
         eprintln!("Publishing packages: {packages:?}");
         for package in &packages {
-            if self.is_already_published(package, &root_version)? {
+            if self.skip_published(package, &root_version) {
                 continue;
             }
             self.cargo.publish(package, self.dry_run)?;
@@ -61,14 +61,17 @@ impl Publish {
         Ok(())
     }
 
-    fn is_already_published(&self, package: &str, root_version: &str) -> Result<bool> {
-        let krate = self.client.get_crate(package).context("cannot get the `oxc` crate")?;
+    fn skip_published(&self, package: &str, root_version: &str) -> bool {
+        let Ok(krate) = self.client.get_crate(package) else {
+            eprintln!("Cannot get {package}");
+            return true;
+        };
         let versions = krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>();
         let is_already_published = versions.iter().any(|v| v == root_version);
         if is_already_published {
             eprintln!("Already published {package} {root_version}");
         }
-        Ok(is_already_published)
+        is_already_published
     }
 
     fn get_packages(&self) -> Vec<&Package> {
