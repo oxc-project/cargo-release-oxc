@@ -64,7 +64,7 @@ impl Publish {
     fn skip_published(&self, package: &str, root_version: &str) -> bool {
         let Ok(krate) = self.client.get_crate(package) else {
             eprintln!("Cannot get {package}");
-            return true;
+            return false;
         };
         let versions = krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>();
         let is_already_published = versions.iter().any(|v| v == root_version);
