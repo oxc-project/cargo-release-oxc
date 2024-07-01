@@ -24,7 +24,7 @@ struct GitTag {
 }
 
 impl GitTag {
-    fn new((sha, tag): (String, String)) -> Result<Self> {
+    fn new(sha: String, tag: String) -> Result<Self> {
         let version = if tag.contains('v') {
             tag.split_once('v')
                 .with_context(|| format!("tag {tag} does not have a `v`"))?
@@ -61,7 +61,7 @@ impl Update {
         let tags = git_cliff_repo
             .tags(&Some(tag_pattern.clone()), /* topo_order */ false)?
             .into_iter()
-            .map(GitTag::new)
+            .map(|(sha, tag)| GitTag::new(sha, tag.name))
             .collect::<Result<Vec<_>>>()?;
         let current_tag = tags
             .last()
@@ -88,20 +88,9 @@ impl Update {
 
     fn calculate_next_version(&self) -> Result<String> {
         let commits = self.get_commits_for_release()?;
-        let previous = Release {
-            version: Some(self.current_version.to_string()),
-            commits: vec![],
-            commit_id: None,
-            timestamp: 0,
-            previous: None,
-        };
-        let release = Release {
-            version: None,
-            commits,
-            commit_id: None,
-            timestamp: 0,
-            previous: Some(Box::new(previous)),
-        };
+        let previous =
+            Release { version: Some(self.current_version.to_string()), ..Release::default() };
+        let release = Release { commits, previous: Some(Box::new(previous)), ..Release::default() };
         let mut changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
         let next_version =
             changelog.bump_version().context("bump failed")?.context("bump failed")?;
@@ -148,9 +137,8 @@ impl Update {
         Ok(Release {
             version: Some(next_version.to_string()),
             commits,
-            commit_id: None,
             timestamp,
-            previous: None,
+            ..Release::default()
         })
     }
 
