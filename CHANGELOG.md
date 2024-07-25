@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.20](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.19...v0.0.20) - 2024-07-25
+
+### Other
+- *(deps)* update dependency rust to v1.80.0 ([#42](https://github.com/oxc-project/cargo-release-oxc/pull/42))
+- *(deps)* update rust crates
+- *(deps)* update rust crate toml_edit to v0.22.15
+- *(deps)* update rust crates
+- *(deps)* update rust crates ([#40](https://github.com/oxc-project/cargo-release-oxc/pull/40))
+
 ## [0.0.19](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.18...v0.0.19) - 2024-06-27
 
 ### Fixed
