@@ -24,8 +24,16 @@ impl CargoCommand {
         Self { current_dir }
     }
 
+    pub fn check(&self, package_name: &str) -> Result<()> {
+        let output = self.run(&["check", "-p", package_name])?;
+        if !output.status.success() {
+            anyhow::bail!("failed to check {}: {}", package_name, output.stderr);
+        }
+        Ok(())
+    }
+
     pub fn publish(&self, package_name: &str, dry_run: bool) -> Result<()> {
-        let mut args = vec!["--color", "always", "publish", "-p", package_name];
+        let mut args = vec!["publish", "-p", package_name];
         if dry_run {
             args.push("--dry-run");
         }
@@ -44,6 +52,9 @@ impl CargoCommand {
             let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_owned());
             Command::new(cargo)
         }
+
+        let mut args = args.to_vec();
+        args.extend(["--color", "always"]);
 
         let mut stderr_lines = vec![];
         let mut command = cargo_cmd();

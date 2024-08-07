@@ -48,6 +48,10 @@ impl Publish {
 
         eprintln!("Publishing packages: {packages:?}");
         for package in &packages {
+            if self.dry_run {
+                // check each crate individually to prevent feature unification.
+                self.cargo.check(package)?;
+            }
             if self.skip_published(package, &root_version) {
                 continue;
             }
