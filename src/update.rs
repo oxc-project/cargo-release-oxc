@@ -100,7 +100,7 @@ impl Update {
     fn get_commits_for_package(
         &self,
         package: &VersionedPackage,
-        commits_range: String,
+        commits_range: &str,
     ) -> Result<Vec<Commit>> {
         let include_path = self.get_include_pattern(package)?;
         let commits = self
@@ -156,7 +156,7 @@ impl Update {
         next_version: &str,
     ) -> Result<()> {
         let commits_range = self.release_set.commits_range(&self.current_version);
-        let commits = self.get_commits_for_package(package, commits_range)?;
+        let commits = self.get_commits_for_package(package, &commits_range)?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
         Self::save_changelog(&package.dir, &changelog)?;
@@ -173,7 +173,7 @@ impl Update {
             .collect::<Result<Vec<_>>>()?;
         let commits = self
             .git_cliff_repo
-            .commits(Some(commits_range), Some(include_paths), None)?
+            .commits(Some(&commits_range), Some(include_paths), None)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
@@ -199,7 +199,7 @@ impl Update {
                 let from = &pair[0];
                 let to = &pair[1];
                 let commits_range = format!("{}..{}", from.sha, to.sha);
-                let commits = self.get_commits_for_package(&package, commits_range)?;
+                let commits = self.get_commits_for_package(&package, &commits_range)?;
                 let release =
                     self.get_git_cliff_release(commits, &to.version.to_string(), Some(&to.sha))?;
                 releases.push(release);
