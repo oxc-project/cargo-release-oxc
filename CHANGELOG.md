@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.23](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.22...v0.0.23) - 2024-08-29
+
+### Added
+- only matching scopes can participate in braking change detection.
+
+### Other
+- bump rust
+- bump deps
+- *(deps)* update rust crates
+- *(deps)* update rust crates
+- trigger release-binaries manually
+
 ## [0.0.22](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.21...v0.0.22) - 2024-08-07
 
 ### Other
