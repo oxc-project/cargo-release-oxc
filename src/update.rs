@@ -87,7 +87,23 @@ impl Update {
     }
 
     fn calculate_next_version(&self) -> Result<String> {
-        let commits = self.get_commits_for_release()?;
+        let mut commits = self
+            .get_commits_for_release()?
+            .into_iter()
+            .filter_map(|c| c.into_conventional().ok())
+            .collect::<Vec<_>>();
+        // Only matching scopes can participate in braking change detection.
+        if let Some(scopes) = &self.release_set.scopes_for_breaking_change {
+            commits = commits
+                .into_iter()
+                .filter(|commit| {
+                    let Some(commit) = commit.conv.as_ref() else { return false };
+                    let Some(scope) = commit.scope() else { return false };
+                    scopes.iter().any(|s| scope.contains(s))
+                })
+                .collect::<Vec<_>>();
+        }
+
         let previous =
             Release { version: Some(self.current_version.to_string()), ..Release::default() };
         let release = Release { commits, previous: Some(Box::new(previous)), ..Release::default() };
@@ -100,7 +116,7 @@ impl Update {
     fn get_commits_for_package(
         &self,
         package: &VersionedPackage,
-        commits_range: String,
+        commits_range: &str,
     ) -> Result<Vec<Commit>> {
         let include_path = self.get_include_pattern(package)?;
         let commits = self
@@ -156,7 +172,7 @@ impl Update {
         next_version: &str,
     ) -> Result<()> {
         let commits_range = self.release_set.commits_range(&self.current_version);
-        let commits = self.get_commits_for_package(package, commits_range)?;
+        let commits = self.get_commits_for_package(package, &commits_range)?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
         Self::save_changelog(&package.dir, &changelog)?;
@@ -173,7 +189,7 @@ impl Update {
             .collect::<Result<Vec<_>>>()?;
         let commits = self
             .git_cliff_repo
-            .commits(Some(commits_range), Some(include_paths), None)?
+            .commits(Some(&commits_range), Some(include_paths), None)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
@@ -199,7 +215,7 @@ impl Update {
                 let from = &pair[0];
                 let to = &pair[1];
                 let commits_range = format!("{}..{}", from.sha, to.sha);
-                let commits = self.get_commits_for_package(&package, commits_range)?;
+                let commits = self.get_commits_for_package(&package, &commits_range)?;
                 let release =
                     self.get_git_cliff_release(commits, &to.version.to_string(), Some(&to.sha))?;
                 releases.push(release);
