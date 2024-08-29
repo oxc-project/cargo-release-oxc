@@ -230,7 +230,7 @@ dependencies = [
 
 [[package]]
 name = "cargo-release-oxc"
-version = "0.0.22"
+version = "0.0.23"
 dependencies = [
  "anyhow",
  "bpaf",
