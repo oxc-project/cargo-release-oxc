@@ -59,7 +59,11 @@ impl Update {
         let tag_pattern = regex::Regex::new(&format!("^{}_v[0-9]*", options.release))
             .context("failed to make regex")?;
         let tags = git_cliff_repo
-            .tags(&Some(tag_pattern.clone()), /* topo_order */ false)?
+            .tags(
+                &Some(tag_pattern.clone()),
+                /* topo_order */ false,
+                /* include only the tags that belong to the current branch. */ false,
+            )?
             .into_iter()
             .map(|(sha, tag)| GitTag::new(sha, tag.name))
             .collect::<Result<Vec<_>>>()?;
