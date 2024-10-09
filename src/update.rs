@@ -149,7 +149,7 @@ impl Update {
             None => SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64,
             Some(sha) => self
                 .git_cliff_repo
-                .find_commit(sha.to_string())
+                .find_commit(sha)
                 .ok_or_else(|| anyhow::anyhow!("Cannot find commit {sha}"))?
                 .time()
                 .seconds(),
