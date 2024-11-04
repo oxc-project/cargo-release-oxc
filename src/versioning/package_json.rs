@@ -37,7 +37,8 @@ impl PackageJson {
 
     pub fn update_version(&self, version: &str) -> Result<()> {
         self.raw.borrow_mut().insert("version".to_string(), Value::String(version.to_string()));
-        let json = serde_json::to_string_pretty(&self.raw).context("failed to write json")?;
+        let mut json = serde_json::to_string_pretty(&self.raw).context("failed to write json")?;
+        json.push('\n');
         fs::write(&self.path, json).context("failed to write json")?;
         Ok(())
     }
