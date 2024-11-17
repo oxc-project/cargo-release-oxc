@@ -42,6 +42,6 @@ glob           = "0.3.1"
 toml_edit      = { version = "0.22.22", features = ["parse"] }
 crates_io_api  = { version = "0.11.0", default-features = false, features = ["rustls"] }
 toml           = "0.8.19"
-serde          = "1.0.214"
-serde_json     = { version = "1.0.132", features = ["preserve_order"] }
+serde          = "1.0.215"
+serde_json     = { version = "1.0.133", features = ["preserve_order"] }
 regex          = "1.11.1"
