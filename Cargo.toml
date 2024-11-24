@@ -36,8 +36,8 @@ test = false
 [dependencies]
 anyhow         = "1.0.93"
 bpaf           = { version = "0.9.15", features = ["derive", "batteries"] }
-cargo_metadata = "0.18.1"
-git-cliff-core = { version = "2.6.1", default-features = false, features = ["repo"] }
+cargo_metadata = "0.19.0"
+git-cliff-core = { version = "2.7.0", default-features = false, features = ["repo"] }
 glob           = "0.3.1"
 toml_edit      = { version = "0.22.22", features = ["parse"] }
 crates_io_api  = { version = "0.11.0", default-features = false, features = ["rustls"] }
