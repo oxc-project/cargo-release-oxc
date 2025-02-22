@@ -1,7 +1,7 @@
 [package]
 name        = "cargo-release-oxc"
 version     = "0.0.26"
-edition     = "2021"
+edition     = "2024"
 description = "Oxc release management"
 authors     = ["Boshen <boshenc@gmail.com>"]
 repository  = "https://github.com/oxc-project/cargo-release-oxc"

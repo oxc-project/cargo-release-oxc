@@ -6,13 +6,13 @@ use std::{
 
 use anyhow::{Context, Result};
 use git_cliff_core::{
-    changelog::Changelog, commit::Commit, config::Config, release::Release, repo::Repository,
-    DEFAULT_CONFIG,
+    DEFAULT_CONFIG, changelog::Changelog, commit::Commit, config::Config, release::Release,
+    repo::Repository,
 };
 
 use crate::{
-    config::{ReleaseConfig, ReleaseSet, VersionedPackage},
     Options,
+    config::{ReleaseConfig, ReleaseSet, VersionedPackage},
 };
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";

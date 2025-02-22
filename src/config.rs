@@ -31,10 +31,11 @@ impl ReleaseConfig {
     }
 
     pub fn get_release(self, release_name: &str) -> Result<ReleaseSet> {
-        if let Some(release_set) = self.release_sets.into_iter().find(|r| r.name == release_name) {
-            Ok(release_set)
-        } else {
-            anyhow::bail!("release {} not found", release_name);
+        match self.release_sets.into_iter().find(|r| r.name == release_name) {
+            Some(release_set) => Ok(release_set),
+            _ => {
+                anyhow::bail!("release {} not found", release_name);
+            }
         }
     }
 }

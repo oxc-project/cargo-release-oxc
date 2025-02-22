@@ -5,9 +5,9 @@ use cargo_metadata::{Metadata, MetadataCommand, Package};
 use crates_io_api::SyncClient;
 
 use crate::{
+    Options,
     cargo_command::CargoCommand,
     config::{ReleaseConfig, ReleaseSet},
-    Options,
 };
 
 pub struct Publish {
