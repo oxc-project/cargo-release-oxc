@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.28](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.27...v0.0.28) - 2025-02-23
+
+### Other
+
+- *(deps)* lock file maintenance (#69)
+- *(deps)* update github-actions (#68)
+
 ## [0.0.27](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.26...v0.0.27) - 2025-02-22
 
 ### Other
