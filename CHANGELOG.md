@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.28](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.27...v0.0.28) - 2025-03-16
+
+### Other
+
+- *(deps)* update marcoieni/release-plz-action digest to 4cd77ee ([#77](https://github.com/oxc-project/cargo-release-oxc/pull/77))
+- *(deps)* lock file maintenance rust crates ([#75](https://github.com/oxc-project/cargo-release-oxc/pull/75))
+- *(deps)* update marcoieni/release-plz-action digest to 476794e ([#74](https://github.com/oxc-project/cargo-release-oxc/pull/74))
+- use OXC_BOT_PAT
+- *(deps)* lock file maintenance rust crates ([#72](https://github.com/oxc-project/cargo-release-oxc/pull/72))
+- *(deps)* update marcoieni/release-plz-action digest to 7049379 ([#71](https://github.com/oxc-project/cargo-release-oxc/pull/71))
+- *(deps)* lock file maintenance ([#69](https://github.com/oxc-project/cargo-release-oxc/pull/69))
+- *(deps)* update github-actions ([#68](https://github.com/oxc-project/cargo-release-oxc/pull/68))
+
 ## [0.0.27](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.26...v0.0.27) - 2025-02-22
 
 ### Other
