@@ -6,6 +6,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.29](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.28...v0.0.29) - 2025-04-14
+
+### Other
+
+- *(deps)* update github-actions ([#87](https://github.com/oxc-project/cargo-release-oxc/pull/87))
+- *(deps)* lock file maintenance ([#88](https://github.com/oxc-project/cargo-release-oxc/pull/88))
+- *(deps)* update dependency rust to v1.86.0 ([#86](https://github.com/oxc-project/cargo-release-oxc/pull/86))
+- *(deps)* update marcoieni/release-plz-action digest to 8e91c71 ([#84](https://github.com/oxc-project/cargo-release-oxc/pull/84))
+- *(deps)* lock file maintenance ([#85](https://github.com/oxc-project/cargo-release-oxc/pull/85))
+- *(deps)* lock file maintenance ([#83](https://github.com/oxc-project/cargo-release-oxc/pull/83))
+- *(deps)* lock file maintenance ([#82](https://github.com/oxc-project/cargo-release-oxc/pull/82))
+- *(deps)* update dependency rust to v1.85.1 ([#80](https://github.com/oxc-project/cargo-release-oxc/pull/80))
+- remove 'renovate/**' trigger
+- update release-plz.yml
+
 ## [0.0.28](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.27...v0.0.28) - 2025-03-16
 
 ### Other
