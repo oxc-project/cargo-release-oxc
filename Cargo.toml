@@ -1,6 +1,6 @@
 [package]
 name        = "cargo-release-oxc"
-version     = "0.0.28"
+version     = "0.0.29"
 edition     = "2024"
 description = "Oxc release management"
 authors     = ["Boshen <boshenc@gmail.com>"]

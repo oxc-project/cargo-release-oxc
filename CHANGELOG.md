@@ -6,6 +6,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.29](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.28...v0.0.29) - 2025-06-30
+
+### Fixed
+
+- fix errors
+
+### Other
+
+- *(deps)* lock file maintenance ([#105](https://github.com/oxc-project/cargo-release-oxc/pull/105))
+- *(deps)* update dependency rust to v1.88.0 ([#104](https://github.com/oxc-project/cargo-release-oxc/pull/104))
+- *(deps)* lock file maintenance ([#103](https://github.com/oxc-project/cargo-release-oxc/pull/103))
+- *(deps)* update marcoieni/release-plz-action action to v0.5.108 ([#102](https://github.com/oxc-project/cargo-release-oxc/pull/102))
+- *(deps)* lock file maintenance ([#101](https://github.com/oxc-project/cargo-release-oxc/pull/101))
+- *(deps)* update taiki-e/upload-rust-binary-action action to v1.27.0 ([#100](https://github.com/oxc-project/cargo-release-oxc/pull/100))
+- *(deps)* lock file maintenance rust crates ([#99](https://github.com/oxc-project/cargo-release-oxc/pull/99))
+- *(deps)* lock file maintenance rust crates ([#98](https://github.com/oxc-project/cargo-release-oxc/pull/98))
+- *(deps)* lock file maintenance rust crates ([#97](https://github.com/oxc-project/cargo-release-oxc/pull/97))
+- *(deps)* update marcoieni/release-plz-action action to v0.5.107 ([#95](https://github.com/oxc-project/cargo-release-oxc/pull/95))
+- *(deps)* lock file maintenance ([#96](https://github.com/oxc-project/cargo-release-oxc/pull/96))
+- *(deps)* update dependency rust to v1.87.0 ([#94](https://github.com/oxc-project/cargo-release-oxc/pull/94))
+- *(deps)* update github-actions ([#91](https://github.com/oxc-project/cargo-release-oxc/pull/91))
+- *(deps)* lock file maintenance ([#93](https://github.com/oxc-project/cargo-release-oxc/pull/93))
+- *(deps)* lock file maintenance rust crates ([#92](https://github.com/oxc-project/cargo-release-oxc/pull/92))
+- *(deps)* update taiki-e/upload-rust-binary-action action to v1.25.0 ([#90](https://github.com/oxc-project/cargo-release-oxc/pull/90))
+- *(deps)* update marcoieni/release-plz-action action to v0.5.105 ([#89](https://github.com/oxc-project/cargo-release-oxc/pull/89))
+- *(deps)* update github-actions ([#87](https://github.com/oxc-project/cargo-release-oxc/pull/87))
+- *(deps)* lock file maintenance ([#88](https://github.com/oxc-project/cargo-release-oxc/pull/88))
+- *(deps)* update dependency rust to v1.86.0 ([#86](https://github.com/oxc-project/cargo-release-oxc/pull/86))
+- *(deps)* update marcoieni/release-plz-action digest to 8e91c71 ([#84](https://github.com/oxc-project/cargo-release-oxc/pull/84))
+- *(deps)* lock file maintenance ([#85](https://github.com/oxc-project/cargo-release-oxc/pull/85))
+- *(deps)* lock file maintenance ([#83](https://github.com/oxc-project/cargo-release-oxc/pull/83))
+- *(deps)* lock file maintenance ([#82](https://github.com/oxc-project/cargo-release-oxc/pull/82))
+- *(deps)* update dependency rust to v1.85.1 ([#80](https://github.com/oxc-project/cargo-release-oxc/pull/80))
+- remove 'renovate/**' trigger
+- update release-plz.yml
+
 ## [0.0.28](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.27...v0.0.28) - 2025-03-16
 
 ### Other
