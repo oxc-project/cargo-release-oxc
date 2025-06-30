@@ -37,7 +37,8 @@ impl Publish {
     pub fn run(self) -> Result<()> {
         let packages = self.get_packages();
 
-        let Some(root_package) = &packages.iter().find(|package| package.name == "oxc") else {
+        let Some(root_package) = &packages.iter().find(|package| package.name.as_str() == "oxc")
+        else {
             anyhow::bail!("root package 'oxc' not found.");
         };
 
@@ -116,7 +117,7 @@ mod release_order {
         for d in &pkg.dependencies {
             // Check if the dependency is part of the packages we are releasing.
             if let Some(dep) = packages.iter().find(|p| {
-                d.name == p.name
+                d.name == p.name.as_str()
               // Exclude the current package.
               && p.name != pkg.name
             }) {

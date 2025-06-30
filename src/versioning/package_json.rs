@@ -20,10 +20,10 @@ pub struct PackageJson {
 
 impl PackageJson {
     pub fn new(path: &Path) -> Result<Self> {
-        let content =
-            fs::read_to_string(path).with_context(|| format!("failed to read {path:?}"))?;
-        let raw: RawJson =
-            serde_json::from_str(&content).with_context(|| format!("failed to parse {path:?}"))?;
+        let content = fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
+        let raw: RawJson = serde_json::from_str(&content)
+            .with_context(|| format!("failed to parse {}", path.display()))?;
         Ok(Self { path: path.to_path_buf(), raw: RefCell::new(raw) })
     }
 

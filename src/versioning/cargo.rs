@@ -34,7 +34,7 @@ impl CargoToml {
                 // `publish.is_none()` means `publish = true`.
                 .filter(|p| p.publish.is_none())
                 .map(|p| VersionedPackage {
-                    name: p.name.clone(),
+                    name: p.name.to_string(),
                     dir: p.manifest_path.parent().unwrap().as_std_path().to_path_buf(),
                     path: p.manifest_path.as_std_path().to_path_buf(),
                 })

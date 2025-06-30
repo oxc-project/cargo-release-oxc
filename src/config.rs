@@ -94,8 +94,9 @@ pub struct VersionedPackage {
 
 impl VersionedContent {
     fn read(path: &Path) -> Result<Self> {
-        let file_name =
-            path.file_name().with_context(|| format!("{path:?} does not have a filename."))?;
+        let file_name = path
+            .file_name()
+            .with_context(|| format!("{} does not have a filename.", path.display()))?;
         let content = match file_name.to_string_lossy().as_ref() {
             "Cargo.toml" => Self::Cargo(CargoToml::new(path)?),
             "package.json" => Self::PackageJson(PackageJson::new(path)?),

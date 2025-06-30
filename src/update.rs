@@ -111,7 +111,7 @@ impl Update {
         let previous =
             Release { version: Some(self.current_version.to_string()), ..Release::default() };
         let release = Release { commits, previous: Some(Box::new(previous)), ..Release::default() };
-        let mut changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
+        let mut changelog = Changelog::new(vec![release], &self.git_cliff_config, None)?;
         let next_version =
             changelog.bump_version().context("bump failed")?.context("bump failed")?;
         Ok(next_version)
@@ -125,7 +125,7 @@ impl Update {
         let include_path = self.get_include_pattern(package)?;
         let commits = self
             .git_cliff_repo
-            .commits(Some(commits_range), Some(vec![include_path]), None)?
+            .commits(Some(commits_range), Some(vec![include_path]), None, true)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
@@ -178,7 +178,7 @@ impl Update {
         let commits_range = self.release_set.commits_range(&self.current_version);
         let commits = self.get_commits_for_package(package, &commits_range)?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
-        let changelog = Changelog::new(vec![release], &self.git_cliff_config)?;
+        let changelog = Changelog::new(vec![release], &self.git_cliff_config, None)?;
         Self::save_changelog(&package.dir, &changelog)?;
         Ok(())
     }
@@ -193,7 +193,7 @@ impl Update {
             .collect::<Result<Vec<_>>>()?;
         let commits = self
             .git_cliff_repo
-            .commits(Some(&commits_range), Some(include_paths), None)?
+            .commits(Some(&commits_range), Some(include_paths), None, true)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
@@ -205,7 +205,7 @@ impl Update {
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut git_cliff_config = self.git_cliff_config.clone();
         git_cliff_config.changelog.header = None;
-        let changelog = Changelog::new(vec![release], &git_cliff_config)?;
+        let changelog = Changelog::new(vec![release], &git_cliff_config, None)?;
         let mut s = vec![];
         changelog.generate(&mut s).context("failed to generate changelog")?;
         fs::write("./target/OXC_CHANGELOG", String::from_utf8(s).unwrap())?;
@@ -224,7 +224,7 @@ impl Update {
                     self.get_git_cliff_release(commits, &to.version.to_string(), Some(&to.sha))?;
                 releases.push(release);
             }
-            let changelog = Changelog::new(releases, &self.git_cliff_config)?;
+            let changelog = Changelog::new(releases, &self.git_cliff_config, None)?;
             let changelog_path = package.dir.join(CHANGELOG_NAME);
             let mut out = File::create(&changelog_path)?;
             changelog.generate(&mut out)?;
