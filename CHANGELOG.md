@@ -1,4 +1,23 @@
 # Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [0.0.30](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.29...v0.0.30) - 2025-07-28
+
+### Other
+
+- update release.yml
+- *(deps)* lock file maintenance rust crates ([#113](https://github.com/oxc-project/cargo-release-oxc/pull/113))
+- *(deps)* update marcoieni/release-plz-action action to v0.5.109 ([#109](https://github.com/oxc-project/cargo-release-oxc/pull/109))
+- *(deps)* lock file maintenance ([#111](https://github.com/oxc-project/cargo-release-oxc/pull/111))
+- *(deps)* lock file maintenance rust crates ([#110](https://github.com/oxc-project/cargo-release-oxc/pull/110))
+- *(deps)* lock file maintenance rust crates ([#108](https://github.com/oxc-project/cargo-release-oxc/pull/108))
+# Changelog
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
