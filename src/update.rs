@@ -55,7 +55,7 @@ impl Update {
         let release_set = ReleaseConfig::new(&cwd)?.get_release(&options.release)?;
 
         let git_cliff_repo = Repository::init(cwd.clone())?;
-        let git_cliff_config = Config::parse(&cwd.join(DEFAULT_CONFIG))?;
+        let git_cliff_config = Config::load(&cwd.join(DEFAULT_CONFIG))?;
         let tag_pattern = regex::Regex::new(&format!("^{}_v[0-9]*", options.release))
             .context("failed to make regex")?;
         let tags = git_cliff_repo
@@ -157,7 +157,7 @@ impl Update {
         Ok(Release {
             version: Some(next_version.to_string()),
             commits,
-            timestamp,
+            timestamp: Some(timestamp),
             ..Release::default()
         })
     }
