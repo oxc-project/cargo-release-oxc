@@ -121,7 +121,7 @@ impl Update {
         &self,
         package: &VersionedPackage,
         commits_range: &str,
-    ) -> Result<Vec<Commit>> {
+    ) -> Result<Vec<Commit<'_>>> {
         let include_path = self.get_include_pattern(package)?;
         let commits = self
             .git_cliff_repo
