@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.31](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.30...v0.0.31) - 2025-08-26
+
+### Other
+
+- *(deps)* bump
+- *(deps)* lock file maintenance rust crates ([#119](https://github.com/oxc-project/cargo-release-oxc/pull/119))
+- *(deps)* lock file maintenance rust crates ([#118](https://github.com/oxc-project/cargo-release-oxc/pull/118))
+- *(deps)* pin dependencies ([#116](https://github.com/oxc-project/cargo-release-oxc/pull/116))
+- *(deps)* lock file maintenance rust crates ([#117](https://github.com/oxc-project/cargo-release-oxc/pull/117))
+- *(deps)* update dependency rust to v1.89.0 ([#114](https://github.com/oxc-project/cargo-release-oxc/pull/114))
+
 ## [0.0.30](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.29...v0.0.30) - 2025-07-28
 
 ### Other
