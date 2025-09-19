@@ -36,6 +36,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.32](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.31...v0.0.32) - 2025-09-19
+
+### Other
+
+- *(deps)* update dependency rust to v1.90.0 ([#128](https://github.com/oxc-project/cargo-release-oxc/pull/128))
+- fix typos
+- *(deps)* update github-actions ([#129](https://github.com/oxc-project/cargo-release-oxc/pull/129))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.32.1 ([#124](https://github.com/oxc-project/cargo-release-oxc/pull/124))
+- remove paths-ignore
+- *(deps)* lock file maintenance ([#127](https://github.com/oxc-project/cargo-release-oxc/pull/127))
+- *(deps)* lock file maintenance rust crates ([#126](https://github.com/oxc-project/cargo-release-oxc/pull/126))
+- *(deps)* lock file maintenance rust crates ([#125](https://github.com/oxc-project/cargo-release-oxc/pull/125))
+- *(deps)* lock file maintenance ([#123](https://github.com/oxc-project/cargo-release-oxc/pull/123))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.31.1 ([#120](https://github.com/oxc-project/cargo-release-oxc/pull/120))
+
 ## [0.0.29](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.28...v0.0.29) - 2025-06-30
 
 ### Fixed
