@@ -102,14 +102,14 @@ impl CargoTomlFile {
             .and_then(|table| table.get_mut("dependencies"))
             .and_then(|item| item.as_table_mut())
         else {
-            anyhow::bail!("`workspace.dependencies` field not found: {:?}", self.path);
+            anyhow::bail!("`workspace.dependencies` field not found: {}", self.path.display());
         };
         let Some(version_field) = table
             .get_mut(crate_name)
             .and_then(|item| item.as_inline_table_mut())
             .and_then(|item| item.get_mut("version"))
         else {
-            anyhow::bail!("dependency `{}` not found: {:?}", crate_name, self.path);
+            anyhow::bail!("dependency `{}` not found: {}", crate_name, self.path.display());
         };
         *version_field = Value::String(Formatted::new(version.to_string()));
         Ok(())
@@ -123,7 +123,7 @@ impl CargoTomlFile {
             .and_then(|table| table.get_mut("version"))
             .and_then(|item| item.as_value_mut())
         else {
-            anyhow::bail!("No `package.version` field found: {:?}", self.path);
+            anyhow::bail!("No `package.version` field found: {}", self.path.display());
         };
         *version_field = Value::String(Formatted::new(version.to_string()));
         Ok(())

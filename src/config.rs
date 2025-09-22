@@ -34,7 +34,7 @@ impl ReleaseConfig {
         match self.release_sets.into_iter().find(|r| r.name == release_name) {
             Some(release_set) => Ok(release_set),
             _ => {
-                anyhow::bail!("release {} not found", release_name);
+                anyhow::bail!("release {release_name} not found");
             }
         }
     }
@@ -100,7 +100,7 @@ impl VersionedContent {
         let content = match file_name.to_string_lossy().as_ref() {
             "Cargo.toml" => Self::Cargo(CargoToml::new(path)?),
             "package.json" => Self::PackageJson(PackageJson::new(path)?),
-            _ => anyhow::bail!("{path:?} is not recognized"),
+            _ => anyhow::bail!("{} is not recognized", path.display()),
         };
         Ok(content)
     }
