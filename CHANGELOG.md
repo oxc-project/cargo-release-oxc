@@ -36,6 +36,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.32](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.31...v0.0.32) - 2025-10-13
+
+### Fixed
+
+- de-duplicate packages to avoid duplicate changelog entries ([#142](https://github.com/oxc-project/cargo-release-oxc/pull/142))
+
+### Other
+
+- *(deps)* lock file maintenance ([#141](https://github.com/oxc-project/cargo-release-oxc/pull/141))
+- *(deps)* lock file maintenance rust crates ([#140](https://github.com/oxc-project/cargo-release-oxc/pull/140))
+- *(deps)* update crate-ci/typos action to v1.38.1 ([#139](https://github.com/oxc-project/cargo-release-oxc/pull/139))
+- *(deps)* update crate-ci/typos action to v1.38.0 ([#138](https://github.com/oxc-project/cargo-release-oxc/pull/138))
+- *(deps)* lock file maintenance rust crates ([#137](https://github.com/oxc-project/cargo-release-oxc/pull/137))
+- *(deps)* update oxc-project/setup-rust action to v1.0.7 ([#136](https://github.com/oxc-project/cargo-release-oxc/pull/136))
+- *(deps)* update crate-ci/typos action to v1.37.2 ([#135](https://github.com/oxc-project/cargo-release-oxc/pull/135))
+- *(deps)* update crate-ci/typos action to v1.37.1 ([#134](https://github.com/oxc-project/cargo-release-oxc/pull/134))
+- *(deps)* update crate-ci/typos action to v1.37.0 ([#133](https://github.com/oxc-project/cargo-release-oxc/pull/133))
+- *(deps)* update oxc-project/setup-rust action to v1.0.6 ([#132](https://github.com/oxc-project/cargo-release-oxc/pull/132))
+- *(deps)* update crate-ci/typos action to v1.36.3 ([#131](https://github.com/oxc-project/cargo-release-oxc/pull/131))
+- *(deps)* lock file maintenance rust crates ([#130](https://github.com/oxc-project/cargo-release-oxc/pull/130))
+- *(deps)* update dependency rust to v1.90.0 ([#128](https://github.com/oxc-project/cargo-release-oxc/pull/128))
+- fix typos
+- *(deps)* update github-actions ([#129](https://github.com/oxc-project/cargo-release-oxc/pull/129))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.32.1 ([#124](https://github.com/oxc-project/cargo-release-oxc/pull/124))
+- remove paths-ignore
+- *(deps)* lock file maintenance ([#127](https://github.com/oxc-project/cargo-release-oxc/pull/127))
+- *(deps)* lock file maintenance rust crates ([#126](https://github.com/oxc-project/cargo-release-oxc/pull/126))
+- *(deps)* lock file maintenance rust crates ([#125](https://github.com/oxc-project/cargo-release-oxc/pull/125))
+- *(deps)* lock file maintenance ([#123](https://github.com/oxc-project/cargo-release-oxc/pull/123))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.31.1 ([#120](https://github.com/oxc-project/cargo-release-oxc/pull/120))
+
 ## [0.0.29](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.28...v0.0.29) - 2025-06-30
 
 ### Fixed
