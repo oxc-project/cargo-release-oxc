@@ -53,7 +53,14 @@ pub struct ReleaseSet {
 impl ReleaseSet {
     #[must_use]
     pub fn versioned_packages(&self) -> Vec<VersionedPackage> {
-        self.versioned_files.iter().flat_map(|v| v.content.versioned_packages()).collect::<Vec<_>>()
+        let mut packages = self
+            .versioned_files
+            .iter()
+            .flat_map(|v| v.content.versioned_packages())
+            .collect::<Vec<_>>();
+        packages.sort_by(|a, b| a.dir.cmp(&b.dir));
+        packages.dedup_by(|a, b| a.dir == b.dir);
+        packages
     }
 
     pub fn update_version(&self, version: &str) -> Result<()> {
