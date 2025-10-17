@@ -37,9 +37,13 @@ impl Publish {
     pub fn run(self) -> Result<()> {
         let packages = self.get_packages();
 
-        let Some(root_package) = &packages.iter().find(|package| package.name.as_str() == "oxc")
+        let Some(root_crate) = &self.release_set.root_crate else {
+            anyhow::bail!("root_crate must be specified in the [[releases]] config");
+        };
+
+        let Some(root_package) = &packages.iter().find(|package| &package.name == root_crate)
         else {
-            anyhow::bail!("root package 'oxc' not found.");
+            anyhow::bail!("root package '{}' not found.", root_crate);
         };
 
         let root_version = root_package.version.to_string();

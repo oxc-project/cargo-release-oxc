@@ -45,10 +45,13 @@ impl ReleaseConfig {
 pub struct ReleaseSet {
     pub name: String,
 
+    pub root_crate: Option<String>,
+
     pub scopes_for_breaking_change: Option<Vec<String>>,
 
     versioned_files: Vec<VersionedFile>,
 }
+
 
 impl ReleaseSet {
     #[must_use]
