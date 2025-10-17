@@ -52,7 +52,6 @@ pub struct ReleaseSet {
     versioned_files: Vec<VersionedFile>,
 }
 
-
 impl ReleaseSet {
     #[must_use]
     pub fn versioned_packages(&self) -> Vec<VersionedPackage> {

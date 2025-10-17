@@ -41,9 +41,10 @@ impl Publish {
             anyhow::bail!("root_crate must be specified in the [[releases]] config");
         };
 
-        let Some(root_package) = &packages.iter().find(|package| &package.name == root_crate)
+        let Some(root_package) =
+            &packages.iter().find(|package| package.name.as_str() == root_crate)
         else {
-            anyhow::bail!("root package '{}' not found.", root_crate);
+            anyhow::bail!("root package '{root_crate}' not found.");
         };
 
         let root_version = root_package.version.to_string();
