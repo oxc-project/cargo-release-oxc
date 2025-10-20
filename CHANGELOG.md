@@ -36,6 +36,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.33](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.32...v0.0.33) - 2025-10-20
+
+### Added
+
+- add configurable root_crate to release config ([#143](https://github.com/oxc-project/cargo-release-oxc/pull/143))
+
+### Other
+
+- *(deps)* lock file maintenance ([#146](https://github.com/oxc-project/cargo-release-oxc/pull/146))
+- *(deps)* lock file maintenance rust crates ([#145](https://github.com/oxc-project/cargo-release-oxc/pull/145))
+
 ## [0.0.32](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.31...v0.0.32) - 2025-10-13
 
 ### Fixed
