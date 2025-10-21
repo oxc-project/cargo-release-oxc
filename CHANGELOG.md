@@ -36,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.34](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.33...v0.0.34) - 2025-10-21
+
+### Other
+
+- use latest
+- bump to latest
+
 ## [0.0.33](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.32...v0.0.33) - 2025-10-20
 
 ### Added
