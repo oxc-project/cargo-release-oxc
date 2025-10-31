@@ -109,7 +109,7 @@ impl Update {
         }
 
         let previous =
-            Release { version: Some(self.current_version.to_string()), ..Release::default() };
+            Release { version: Some(self.current_version.clone()), ..Release::default() };
         let release = Release { commits, previous: Some(Box::new(previous)), ..Release::default() };
         let mut changelog = Changelog::new(vec![release], &self.git_cliff_config, None)?;
         let next_version =
@@ -221,7 +221,7 @@ impl Update {
                 let commits_range = format!("{}..{}", from.sha, to.sha);
                 let commits = self.get_commits_for_package(&package, &commits_range)?;
                 let release =
-                    self.get_git_cliff_release(commits, &to.version.to_string(), Some(&to.sha))?;
+                    self.get_git_cliff_release(commits, &to.version.clone(), Some(&to.sha))?;
                 releases.push(release);
             }
             let changelog = Changelog::new(releases, &self.git_cliff_config, None)?;
