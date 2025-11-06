@@ -47,7 +47,10 @@ impl Publish {
         let packages = release_order::release_order(&packages)?;
         let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
 
-        eprintln!("Publishing packages: {packages:?}");
+        eprintln!("Publishing packages:");
+        for package in &packages {
+            eprintln!("{}", package.as_str());
+        }
         for package in &packages {
             if self.dry_run {
                 // check each crate individually to prevent feature unification.
