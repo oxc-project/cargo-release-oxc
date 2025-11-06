@@ -36,6 +36,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.35](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.34...v0.0.35) - 2025-11-06
+
+### Added
+
+- support multiple releases `--release oxlint --release oxfmt` ([#156](https://github.com/oxc-project/cargo-release-oxc/pull/156))
+
+### Other
+
+- there are no tests
+- *(deps)* lock file maintenance ([#155](https://github.com/oxc-project/cargo-release-oxc/pull/155))
+- *(deps)* update oxc-project/setup-rust action to v1.0.8 ([#154](https://github.com/oxc-project/cargo-release-oxc/pull/154))
+- *(deps)* update crate-ci/typos action to v1.39.0 ([#153](https://github.com/oxc-project/cargo-release-oxc/pull/153))
+- *(deps)* update dependency rust to v1.91.0 ([#151](https://github.com/oxc-project/cargo-release-oxc/pull/151))
+
 ## [0.0.34](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.33...v0.0.34) - 2025-10-21
 
 ### Other
