@@ -26,7 +26,7 @@ missing_panics_doc          = "allow"
 module_name_repetitions     = "allow"
 
 [lib]
-test = false
+test    = false
 doctest = false
 
 [[bin]]

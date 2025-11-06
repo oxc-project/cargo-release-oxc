@@ -170,6 +170,9 @@ impl Update {
     }
 
     fn save_changelog(package_path: &Path, changelog: &Changelog) -> Result<()> {
+        if changelog.releases.is_empty() {
+            return Ok(());
+        }
         let changelog_path = package_path.join(CHANGELOG_NAME);
         let prev_changelog_string = fs::read_to_string(&changelog_path).unwrap_or_default();
         let mut out = File::create(&changelog_path)?;
@@ -185,7 +188,9 @@ impl Update {
         let commits_range = self.release_set.commits_range(&self.current_version);
         let commits = self.get_commits_for_package(package, &commits_range)?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
-        let changelog = Changelog::new(vec![release], &self.git_cliff_config, None)?;
+        let mut config = self.git_cliff_config.clone();
+        config.changelog.footer = None;
+        let changelog = Changelog::new(vec![release], &config, None)?;
         Self::save_changelog(&package.dir, &changelog)?;
         Ok(())
     }
@@ -220,7 +225,7 @@ impl Update {
         let file = Path::new("./target").join(var);
         let output = String::from_utf8(s).unwrap();
         // remove the header date
-        let output = output.split_once("\n\n").unwrap().1.trim();
+        let output = output.split_once("\n\n").map_or_else(|| output.as_str(), |s| s.1).trim();
         fs::write(file, output)?;
         Ok(())
     }
