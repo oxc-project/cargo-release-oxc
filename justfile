@@ -6,10 +6,10 @@ _default:
 alias r := ready
 
 init:
-  cargo binstall cargo-watch taplo-cli
+  cargo binstall watchexec-cli taplo-cli
 
-watch command:
-  cargo watch -x '{{command}}'
+watch *args='':
+  watchexec {{args}}
 
 build-release:
   cargo build --release

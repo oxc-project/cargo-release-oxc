@@ -45,5 +45,5 @@ versioned_files = [
 
 Saves two files to `./target`:
 
-* version: `./target/OXC_VERSION`
-* changelog: `./target/OXC_CHANGELOG`
+* version: `./target/${name}_VERSION`
+* changelog: `./target/${name}_CHANGELOG`

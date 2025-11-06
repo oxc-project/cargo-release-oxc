@@ -17,16 +17,15 @@ pub use self::{publish::Publish, update::Update};
 #[derive(Debug, Clone, Bpaf)]
 pub struct Options {
     /// Select the release specified in `oxc_release.toml`.
-    #[bpaf(long, argument::<String>("NAME"))]
-    release: String,
+    pub release: Vec<String>,
 
     /// Run `cargo publish` with `--dry-run`
     #[bpaf(switch, fallback(false))]
-    dry_run: bool,
+    pub dry_run: bool,
 
     /// Optional path to directory, defaults to current working directory.
     #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
-    path: PathBuf,
+    pub path: PathBuf,
 }
 
 #[derive(Debug, Clone, Bpaf)]
@@ -53,7 +52,7 @@ fn current_dir() -> Result<PathBuf, String> {
     std::env::current_dir().map_err(|err| format!("{err:?}"))
 }
 
-fn check_git_clean(path: &Path) -> Result<()> {
+pub fn check_git_clean(path: &Path) -> Result<()> {
     let git_status = Command::new("git")
         .current_dir(path)
         .stdout(Stdio::null())
