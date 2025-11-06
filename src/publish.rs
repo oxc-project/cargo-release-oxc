@@ -1,11 +1,10 @@
-use std::{fs, time::Duration};
+use std::{fs, path::PathBuf, time::Duration};
 
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata, MetadataCommand, Package};
 use crates_io_api::SyncClient;
 
 use crate::{
-    Options,
     cargo_command::CargoCommand,
     config::{ReleaseConfig, ReleaseSet},
 };
@@ -19,19 +18,15 @@ pub struct Publish {
 }
 
 impl Publish {
-    pub fn new(options: Options) -> Result<Self> {
-        let cwd = options.path;
+    pub fn new(cwd: &PathBuf, release_name: &str, dry_run: bool) -> Result<Self> {
+        let release_set = ReleaseConfig::new(cwd)?.get_release(release_name)?;
 
-        super::check_git_clean(&cwd)?;
-
-        let release_set = ReleaseConfig::new(&cwd)?.get_release(&options.release)?;
-
-        let metadata = MetadataCommand::new().current_dir(&cwd).no_deps().exec()?;
+        let metadata = MetadataCommand::new().current_dir(cwd).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
         let client =
             SyncClient::new("Boshen@users.noreply.github.com", Duration::from_millis(1000))
                 .context("failed to get client")?;
-        Ok(Self { release_set, metadata, cargo, client, dry_run: options.dry_run })
+        Ok(Self { release_set, metadata, cargo, client, dry_run })
     }
 
     pub fn run(self) -> Result<()> {

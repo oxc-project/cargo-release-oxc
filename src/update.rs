@@ -10,10 +10,7 @@ use git_cliff_core::{
     repo::Repository,
 };
 
-use crate::{
-    Options,
-    config::{ReleaseConfig, ReleaseSet, VersionedPackage},
-};
+use crate::config::{ReleaseConfig, ReleaseSet, VersionedPackage};
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
@@ -39,6 +36,7 @@ impl GitTag {
 
 pub struct Update {
     cwd: PathBuf,
+    release_name: String,
     release_set: ReleaseSet,
     git_cliff_repo: Repository,
     git_cliff_config: Config,
@@ -47,16 +45,15 @@ pub struct Update {
 }
 
 impl Update {
-    pub fn new(options: Options) -> Result<Self> {
-        let cwd = options.path;
+    pub fn new(cwd: &Path, release_name: &str) -> Result<Self> {
+        let cwd = cwd.to_path_buf();
+        let release_name = release_name.to_string();
 
-        super::check_git_clean(&cwd)?;
-
-        let release_set = ReleaseConfig::new(&cwd)?.get_release(&options.release)?;
+        let release_set = ReleaseConfig::new(&cwd)?.get_release(&release_name)?;
 
         let git_cliff_repo = Repository::init(cwd.clone())?;
         let git_cliff_config = Config::load(&cwd.join(DEFAULT_CONFIG))?;
-        let tag_pattern = regex::Regex::new(&format!("^{}_v[0-9]*", options.release))
+        let tag_pattern = regex::Regex::new(&format!("^{release_name}_v[0-9]*"))
             .context("failed to make regex")?;
         let tags = git_cliff_repo
             .tags(
@@ -71,7 +68,15 @@ impl Update {
             .last()
             .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
         let current_version = current_tag.version.clone();
-        Ok(Self { cwd, release_set, git_cliff_repo, git_cliff_config, tags, current_version })
+        Ok(Self {
+            cwd,
+            release_name,
+            release_set,
+            git_cliff_repo,
+            git_cliff_config,
+            tags,
+            current_version,
+        })
     }
 
     pub fn run(&self) -> Result<()> {
@@ -86,7 +91,9 @@ impl Update {
     pub fn changelog_for_release(&self) -> Result<String> {
         let next_version = self.calculate_next_version()?;
         self.print_changelog_for_release(&next_version)?;
-        fs::write("./target/OXC_VERSION", &next_version)?;
+        let var = format!("{}_VERSION", self.release_name.to_uppercase());
+        let file = Path::new("./target").join(var);
+        fs::write(file, &next_version)?;
         Ok(next_version)
     }
 
@@ -205,10 +212,16 @@ impl Update {
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut git_cliff_config = self.git_cliff_config.clone();
         git_cliff_config.changelog.header = None;
+        git_cliff_config.changelog.footer = None;
         let changelog = Changelog::new(vec![release], &git_cliff_config, None)?;
         let mut s = vec![];
         changelog.generate(&mut s).context("failed to generate changelog")?;
-        fs::write("./target/OXC_CHANGELOG", String::from_utf8(s).unwrap())?;
+        let var = format!("{}_CHANGELOG", self.release_name.to_uppercase());
+        let file = Path::new("./target").join(var);
+        let output = String::from_utf8(s).unwrap();
+        // remove the header date
+        let output = output.split_once("\n\n").unwrap().1.trim();
+        fs::write(file, output)?;
         Ok(())
     }
 
