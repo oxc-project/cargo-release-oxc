@@ -64,8 +64,8 @@ impl Publish {
                 continue;
             }
             self.cargo.publish(package, self.dry_run)?;
+            eprintln!("Published: {}", package.as_str());
         }
-        eprintln!("Published packages: {packages:?}");
 
         let release_name = &self.release_set.name;
         let version = format!("{release_name}_v{root_version}");
