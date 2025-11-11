@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf, time::Duration};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 use anyhow::{Context, Result};
 use cargo_metadata::{Metadata, MetadataCommand, Package};
@@ -63,9 +67,11 @@ impl Publish {
         }
         eprintln!("Published packages: {packages:?}");
 
-        let version = format!("{}_v{root_version}", self.release_set.name);
-        fs::write("./target/OXC_VERSION", version)?;
-
+        let release_name = &self.release_set.name;
+        let version = format!("{release_name}_v{root_version}");
+        let var = format!("{}_VERSION", release_name.to_uppercase());
+        let file = Path::new("./target").join(var);
+        fs::write(file, version)?;
         Ok(())
     }
 
