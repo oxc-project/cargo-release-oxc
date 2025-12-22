@@ -36,6 +36,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.38](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.37...v0.0.38) - 2025-12-22
+
+### Other
+
+- *(deps)* update rust crates ([#173](https://github.com/oxc-project/cargo-release-oxc/pull/173))
+- *(deps)* update rust crates ([#171](https://github.com/oxc-project/cargo-release-oxc/pull/171))
+- *(deps)* update oxc-project/setup-rust action to v1.0.12 ([#172](https://github.com/oxc-project/cargo-release-oxc/pull/172))
+- *(deps)* update dependency rust to v1.92.0 ([#170](https://github.com/oxc-project/cargo-release-oxc/pull/170))
+- *(deps)* update rust crate toml_edit to v0.23.9 ([#169](https://github.com/oxc-project/cargo-release-oxc/pull/169))
+- *(deps)* update oxc-project/setup-rust action to v1.0.11 ([#168](https://github.com/oxc-project/cargo-release-oxc/pull/168))
+- *(deps)* update crate-ci/typos action to v1.40.0 ([#167](https://github.com/oxc-project/cargo-release-oxc/pull/167))
+- *(deps)* update oxc-project/setup-rust action to v1.0.10 ([#166](https://github.com/oxc-project/cargo-release-oxc/pull/166))
+- *(deps)* update rust crate cargo_metadata to v0.23.1 ([#165](https://github.com/oxc-project/cargo-release-oxc/pull/165))
+- *(deps)* update oxc-project/setup-rust action to v1.0.9 ([#164](https://github.com/oxc-project/cargo-release-oxc/pull/164))
+- *(deps)* update crate-ci/typos action to v1.39.2 ([#163](https://github.com/oxc-project/cargo-release-oxc/pull/163))
+- *(deps)* update crate-ci/typos action to v1.39.1 ([#161](https://github.com/oxc-project/cargo-release-oxc/pull/161))
+
 ## [0.0.37](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.36...v0.0.37) - 2025-11-11
 
 ### Fixed
