@@ -108,7 +108,7 @@ impl Update {
         let previous =
             Release { version: Some(self.current_version.clone()), ..Release::default() };
         let release = Release { commits, previous: Some(Box::new(previous)), ..Release::default() };
-        let mut changelog = Changelog::new(vec![release], &self.git_cliff_config, None)?;
+        let mut changelog = Changelog::new(vec![release], self.git_cliff_config.clone(), None)?;
         let next_version =
             changelog.bump_version().context("bump failed")?.context("bump failed")?;
         Ok(next_version)
@@ -180,7 +180,7 @@ impl Update {
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut config = self.git_cliff_config.clone();
         config.changelog.footer = None;
-        let changelog = Changelog::new(vec![release], &config, None)?;
+        let changelog = Changelog::new(vec![release], config, None)?;
         Self::save_changelog(&package.dir, &changelog)?;
         Ok(())
     }
@@ -208,7 +208,7 @@ impl Update {
         let mut git_cliff_config = self.git_cliff_config.clone();
         git_cliff_config.changelog.header = None;
         git_cliff_config.changelog.footer = None;
-        let changelog = Changelog::new(vec![release], &git_cliff_config, None)?;
+        let changelog = Changelog::new(vec![release], git_cliff_config, None)?;
         let mut s = vec![];
         changelog.generate(&mut s).context("failed to generate changelog")?;
         let var = format!("{}_CHANGELOG", self.release_set.name.to_uppercase());
@@ -232,7 +232,7 @@ impl Update {
                     self.get_git_cliff_release(commits, &to.version.clone(), Some(&to.sha))?;
                 releases.push(release);
             }
-            let changelog = Changelog::new(releases, &self.git_cliff_config, None)?;
+            let changelog = Changelog::new(releases, self.git_cliff_config.clone(), None)?;
             let changelog_path = package.dir.join(CHANGELOG_NAME);
             let mut out = File::create(&changelog_path)?;
             changelog.generate(&mut out)?;
