@@ -36,6 +36,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.38](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.37...v0.0.38) - 2026-02-27
+
+### Other
+
+- *(deps)* update crate-ci/typos action to v1.44.0 ([#201](https://github.com/oxc-project/cargo-release-oxc/pull/201))
+- *(deps)* update rust crate anyhow to v1.0.102 ([#200](https://github.com/oxc-project/cargo-release-oxc/pull/200))
+- *(deps)* update crate-ci/typos action to v1.43.5 ([#199](https://github.com/oxc-project/cargo-release-oxc/pull/199))
+- *(deps)* update rust crate toml to v1 ([#198](https://github.com/oxc-project/cargo-release-oxc/pull/198))
+- *(deps)* update taiki-e/upload-rust-binary-action action to v1.28.0 ([#197](https://github.com/oxc-project/cargo-release-oxc/pull/197))
+- *(deps)* update rust crates ([#196](https://github.com/oxc-project/cargo-release-oxc/pull/196))
+- *(deps)* update dependency rust to v1.93.1 ([#195](https://github.com/oxc-project/cargo-release-oxc/pull/195))
+- *(deps)* update crate-ci/typos action to v1.43.4 ([#194](https://github.com/oxc-project/cargo-release-oxc/pull/194))
+- *(deps)* update rust crates ([#193](https://github.com/oxc-project/cargo-release-oxc/pull/193))
+- *(deps)* update crate-ci/typos action to v1.43.3 ([#192](https://github.com/oxc-project/cargo-release-oxc/pull/192))
+- *(deps)* update crate-ci/typos action to v1.43.2 ([#191](https://github.com/oxc-project/cargo-release-oxc/pull/191))
+- *(deps)* update crate-ci/typos action to v1.43.1 ([#190](https://github.com/oxc-project/cargo-release-oxc/pull/190))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.38.0 ([#189](https://github.com/oxc-project/cargo-release-oxc/pull/189))
+- *(deps)* update crate-ci/typos action to v1.42.3 ([#188](https://github.com/oxc-project/cargo-release-oxc/pull/188))
+- *(deps)* update crate-ci/typos action to v1.42.2 ([#187](https://github.com/oxc-project/cargo-release-oxc/pull/187))
+- *(deps)* update rust crate git-cliff-core to v2.12.0 ([#186](https://github.com/oxc-project/cargo-release-oxc/pull/186))
+- *(deps)* update github-actions ([#185](https://github.com/oxc-project/cargo-release-oxc/pull/185))
+- *(deps)* update dependency rust to v1.93.0 ([#184](https://github.com/oxc-project/cargo-release-oxc/pull/184))
+- *(deps)* update crate-ci/typos action to v1.42.1 ([#183](https://github.com/oxc-project/cargo-release-oxc/pull/183))
+- *(deps)* update rust crate bpaf to v0.9.22 ([#182](https://github.com/oxc-project/cargo-release-oxc/pull/182))
+- *(deps)* update rust crates ([#181](https://github.com/oxc-project/cargo-release-oxc/pull/181))
+- *(deps)* update github-actions ([#180](https://github.com/oxc-project/cargo-release-oxc/pull/180))
+- *(deps)* update crate-ci/typos action to v1.42.0 ([#179](https://github.com/oxc-project/cargo-release-oxc/pull/179))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.37.0 ([#178](https://github.com/oxc-project/cargo-release-oxc/pull/178))
+- *(deps)* update crate-ci/typos action to v1.41.0 ([#177](https://github.com/oxc-project/cargo-release-oxc/pull/177))
+- *(deps)* update crate-ci/typos action to v1.40.1 ([#176](https://github.com/oxc-project/cargo-release-oxc/pull/176))
+- *(deps)* update rust crate serde_json to v1.0.148 ([#175](https://github.com/oxc-project/cargo-release-oxc/pull/175))
+- *(deps)* update github-actions ([#174](https://github.com/oxc-project/cargo-release-oxc/pull/174))
+- *(deps)* update rust crates ([#173](https://github.com/oxc-project/cargo-release-oxc/pull/173))
+- *(deps)* update rust crates ([#171](https://github.com/oxc-project/cargo-release-oxc/pull/171))
+- *(deps)* update oxc-project/setup-rust action to v1.0.12 ([#172](https://github.com/oxc-project/cargo-release-oxc/pull/172))
+- *(deps)* update dependency rust to v1.92.0 ([#170](https://github.com/oxc-project/cargo-release-oxc/pull/170))
+- *(deps)* update rust crate toml_edit to v0.23.9 ([#169](https://github.com/oxc-project/cargo-release-oxc/pull/169))
+- *(deps)* update oxc-project/setup-rust action to v1.0.11 ([#168](https://github.com/oxc-project/cargo-release-oxc/pull/168))
+- *(deps)* update crate-ci/typos action to v1.40.0 ([#167](https://github.com/oxc-project/cargo-release-oxc/pull/167))
+- *(deps)* update oxc-project/setup-rust action to v1.0.10 ([#166](https://github.com/oxc-project/cargo-release-oxc/pull/166))
+- *(deps)* update rust crate cargo_metadata to v0.23.1 ([#165](https://github.com/oxc-project/cargo-release-oxc/pull/165))
+- *(deps)* update oxc-project/setup-rust action to v1.0.9 ([#164](https://github.com/oxc-project/cargo-release-oxc/pull/164))
+- *(deps)* update crate-ci/typos action to v1.39.2 ([#163](https://github.com/oxc-project/cargo-release-oxc/pull/163))
+- *(deps)* update crate-ci/typos action to v1.39.1 ([#161](https://github.com/oxc-project/cargo-release-oxc/pull/161))
+
 ## [0.0.37](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.36...v0.0.37) - 2025-11-11
 
 ### Fixed
