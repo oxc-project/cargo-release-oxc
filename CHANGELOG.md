@@ -36,6 +36,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.39](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.38...v0.0.39) - 2026-04-01
+
+### Other
+
+- *(deps)* update crate-ci/typos action to v1.45.0 ([#215](https://github.com/oxc-project/cargo-release-oxc/pull/215))
+- *(deps)* update rust crates ([#214](https://github.com/oxc-project/cargo-release-oxc/pull/214))
+- *(deps)* update taiki-e/setup-cross-toolchain-action action to v1.39.2 ([#213](https://github.com/oxc-project/cargo-release-oxc/pull/213))
+- *(deps)* update dependency rust to v1.94.1 ([#212](https://github.com/oxc-project/cargo-release-oxc/pull/212))
+- *(deps)* update rust crates ([#210](https://github.com/oxc-project/cargo-release-oxc/pull/210))
+- *(deps)* update taiki-e/upload-rust-binary-action action to v1.29.1 ([#211](https://github.com/oxc-project/cargo-release-oxc/pull/211))
+- *(deps)* update rust crate bpaf to v0.9.24 ([#209](https://github.com/oxc-project/cargo-release-oxc/pull/209))
+- *(deps)* update oxc-project/setup-rust action to v1.0.16 ([#208](https://github.com/oxc-project/cargo-release-oxc/pull/208))
+- release v0.0.38 ([#206](https://github.com/oxc-project/cargo-release-oxc/pull/206))
+
 ## [0.0.38](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.37...v0.0.38) - 2026-03-12
 
 ### Other
