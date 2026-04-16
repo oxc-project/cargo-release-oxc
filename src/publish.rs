@@ -27,9 +27,8 @@ impl Publish {
 
         let metadata = MetadataCommand::new().current_dir(cwd).no_deps().exec()?;
         let cargo = CargoCommand::new(metadata.workspace_root.clone().into_std_path_buf());
-        let client =
-            SyncClient::new("Boshen@users.noreply.github.com", Duration::from_millis(1000))
-                .context("failed to get client")?;
+        let client = SyncClient::new("Boshen@users.noreply.github.com", Duration::from_secs(1))
+            .context("failed to get client")?;
         Ok(Self { release_set, metadata, cargo, client, dry_run })
     }
 
