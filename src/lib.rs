@@ -23,6 +23,10 @@ pub struct Options {
     #[bpaf(switch, fallback(false))]
     pub dry_run: bool,
 
+    /// For `update`: also write CHANGELOG.md files alongside the version bump.
+    #[bpaf(switch, fallback(false))]
+    pub changelog: bool,
+
     /// Optional path to directory, defaults to current working directory.
     #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
     pub path: PathBuf,
@@ -31,7 +35,7 @@ pub struct Options {
 #[derive(Debug, Clone, Bpaf)]
 #[bpaf(options("release-oxc"))]
 pub enum ReleaseCommand {
-    /// Generate CHANGELOG.md and bump versions for all published packages.
+    /// Bump versions for all published packages. Pass --changelog to also write CHANGELOG.md.
     #[bpaf(command)]
     Update(#[bpaf(external(options))] Options),
 
