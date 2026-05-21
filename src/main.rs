@@ -18,7 +18,7 @@ fn update(options: &Options) -> Result<()> {
     let cwd = &options.path;
     check_git_clean(cwd)?;
     for release_name in &options.release {
-        Update::new(cwd, release_name)?.run()?;
+        Update::new(cwd, release_name)?.run(options)?;
     }
     Ok(())
 }

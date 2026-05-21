@@ -10,7 +10,10 @@ use git_cliff_core::{
     repo::Repository,
 };
 
-use crate::config::{ReleaseConfig, ReleaseSet, VersionedPackage};
+use crate::{
+    Options,
+    config::{ReleaseConfig, ReleaseSet, VersionedPackage},
+};
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
@@ -69,10 +72,16 @@ impl Update {
         Ok(Self { cwd, release_set, git_cliff_repo, git_cliff_config, tags, current_version })
     }
 
-    pub fn run(&self) -> Result<()> {
-        let next_version = self.changelog_for_release()?;
-        for package in self.release_set.versioned_packages() {
-            self.generate_changelog_for_package(&package, &next_version)?;
+    pub fn run(&self, options: &Options) -> Result<()> {
+        let next_version = self.calculate_next_version()?;
+        if options.changelog {
+            self.print_changelog_for_release(&next_version)?;
+        }
+        self.write_version_file(&next_version)?;
+        if options.changelog {
+            for package in self.release_set.versioned_packages() {
+                self.generate_changelog_for_package(&package, &next_version)?;
+            }
         }
         self.release_set.update_version(&next_version)?;
         Ok(())
@@ -81,10 +90,15 @@ impl Update {
     pub fn changelog_for_release(&self) -> Result<String> {
         let next_version = self.calculate_next_version()?;
         self.print_changelog_for_release(&next_version)?;
+        self.write_version_file(&next_version)?;
+        Ok(next_version)
+    }
+
+    fn write_version_file(&self, next_version: &str) -> Result<()> {
         let var = format!("{}_VERSION", self.release_set.name.to_uppercase());
         let file = Path::new("./target").join(var);
-        fs::write(file, &next_version)?;
-        Ok(next_version)
+        fs::write(file, next_version)?;
+        Ok(())
     }
 
     fn calculate_next_version(&self) -> Result<String> {
