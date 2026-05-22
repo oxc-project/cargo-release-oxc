@@ -43,7 +43,7 @@ pub struct Update {
     git_cliff_repo: Repository,
     git_cliff_config: Config,
     tags: Vec<GitTag>,
-    current_version: String,
+    current_version: Option<String>,
 }
 
 impl Update {
@@ -58,22 +58,34 @@ impl Update {
             .context("failed to make regex")?;
         let tags = git_cliff_repo
             .tags(
-                &Some(tag_pattern.clone()),
+                &Some(tag_pattern),
                 /* topo_order */ false,
                 /* include only the tags that belong to the current branch. */ false,
             )?
             .into_iter()
             .map(|(sha, tag)| GitTag::new(sha, tag.name))
             .collect::<Result<Vec<_>>>()?;
-        let current_tag = tags
-            .last()
-            .ok_or_else(|| anyhow::anyhow!("Tags should not be empty for {tag_pattern:?}"))?;
-        let current_version = current_tag.version.clone();
+        let current_version = tags.last().map(|t| t.version.clone());
         Ok(Self { cwd, release_set, git_cliff_repo, git_cliff_config, tags, current_version })
     }
 
+    fn current_version(&self) -> Result<&str> {
+        self.current_version
+            .as_deref()
+            .ok_or_else(|| anyhow::anyhow!("No `{}_v*` git tag found", self.release_set.name))
+    }
+
+    /// The next version to bump to: `--version` if provided (with any leading `v` stripped),
+    /// otherwise computed from conventional commits since the latest `<release>_v*` tag.
+    pub fn next_version(&self, options: &Options) -> Result<String> {
+        if let Some(version) = &options.version {
+            return Ok(version.strip_prefix('v').unwrap_or(version).to_string());
+        }
+        self.calculate_next_version()
+    }
+
     pub fn run(&self, options: &Options) -> Result<()> {
-        let next_version = self.calculate_next_version()?;
+        let next_version = self.next_version(options)?;
         if options.changelog {
             self.print_changelog_for_release(&next_version)?;
         }
@@ -87,8 +99,8 @@ impl Update {
         Ok(())
     }
 
-    pub fn changelog_for_release(&self) -> Result<String> {
-        let next_version = self.calculate_next_version()?;
+    pub fn changelog_for_release(&self, options: &Options) -> Result<String> {
+        let next_version = self.next_version(options)?;
         self.print_changelog_for_release(&next_version)?;
         self.write_version_file(&next_version)?;
         Ok(next_version)
@@ -120,7 +132,7 @@ impl Update {
         }
 
         let previous =
-            Release { version: Some(self.current_version.clone()), ..Release::default() };
+            Release { version: Some(self.current_version()?.to_string()), ..Release::default() };
         let release = Release { commits, previous: Some(Box::new(previous)), ..Release::default() };
         let mut changelog = Changelog::new(vec![release], self.git_cliff_config.clone(), None)?;
         let next_version =
@@ -189,7 +201,7 @@ impl Update {
         package: &VersionedPackage,
         next_version: &str,
     ) -> Result<()> {
-        let commits_range = self.release_set.commits_range(&self.current_version);
+        let commits_range = self.release_set.commits_range(self.current_version()?);
         let commits = self.get_commits_for_package(package, &commits_range)?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut config = self.git_cliff_config.clone();
@@ -201,7 +213,7 @@ impl Update {
 
     fn get_commits_for_release(&self) -> Result<Vec<Commit<'_>>> {
         let release_set = &self.release_set;
-        let commits_range = release_set.commits_range(&self.current_version);
+        let commits_range = release_set.commits_range(self.current_version()?);
         let include_paths = release_set
             .versioned_packages()
             .iter()
