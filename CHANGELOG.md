@@ -36,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.42](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.41...v0.0.42) - 2026-05-22
+
+### Added
+
+- *(publish)* pre-flight validate metadata before the publish loop ([#244](https://github.com/oxc-project/cargo-release-oxc/pull/244))
+- *(publish)* clearer error reporting and progress output ([#242](https://github.com/oxc-project/cargo-release-oxc/pull/242))
+
 ## [0.0.41](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.40...v0.0.41) - 2026-05-22
 
 ### Fixed
