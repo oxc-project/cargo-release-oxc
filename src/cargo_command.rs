@@ -15,6 +15,10 @@ pub struct CmdOutput {
     pub stderr: String,
 }
 
+fn exit_code(status: ExitStatus) -> String {
+    status.code().map_or_else(|| "?".to_string(), |c| c.to_string())
+}
+
 pub struct CargoCommand {
     current_dir: PathBuf,
 }
@@ -27,7 +31,12 @@ impl CargoCommand {
     pub fn check(&self, package_name: &str) -> Result<()> {
         let output = self.run(&["check", "-p", package_name])?;
         if !output.status.success() {
-            anyhow::bail!("failed to check {}: {}", package_name, output.stderr);
+            anyhow::bail!(
+                "`cargo check -p {}` failed with exit code {}:\n{}",
+                package_name,
+                exit_code(output.status),
+                output.stderr,
+            );
         }
         Ok(())
     }
@@ -38,11 +47,14 @@ impl CargoCommand {
             args.push("--dry-run");
         }
         let output = self.run(&args)?;
-        if !output.status.success()
-            || !output.stderr.contains("Uploading")
-            || output.stderr.contains("error:")
-        {
-            anyhow::bail!("failed to publish {}: {}", package_name, output.stderr);
+        if !output.status.success() {
+            anyhow::bail!(
+                "`cargo publish -p {}{}` failed with exit code {}:\n{}",
+                package_name,
+                if dry_run { " --dry-run" } else { "" },
+                exit_code(output.status),
+                output.stderr,
+            );
         }
         Ok(())
     }
