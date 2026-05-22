@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use cargo_metadata::{Metadata, MetadataCommand, Package};
+use cargo_metadata::{DependencyKind, Metadata, MetadataCommand, Package};
 use crates_io_api::SyncClient;
 
 use crate::{
@@ -46,6 +46,8 @@ impl Publish {
         };
 
         let root_version = root_package.version.to_string();
+
+        validate_packages(&packages)?;
 
         let packages = release_order::release_order(&packages)?;
         let packages: Vec<&str> =
@@ -117,6 +119,51 @@ impl Publish {
         // `publish.is_none()` means `publish = true`.
         self.metadata.workspace_packages().into_iter().filter(|p| p.publish.is_none()).collect()
     }
+}
+
+/// Catch metadata issues that would fail at upload time before we burn
+/// minutes of publish-loop work to discover them one crate at a time.
+fn validate_packages(packages: &[&Package]) -> Result<()> {
+    let mut errors: Vec<String> = vec![];
+    for pkg in packages {
+        if pkg.description.as_deref().is_none_or(str::is_empty) {
+            errors.push(format!(
+                "`{}`: missing `description` field — crates.io requires it",
+                pkg.name,
+            ));
+        }
+        if pkg.license.is_none() && pkg.license_file.is_none() {
+            errors.push(format!(
+                "`{}`: missing `license` or `license-file` field — crates.io requires one",
+                pkg.name,
+            ));
+        }
+        for dep in &pkg.dependencies {
+            if dep.kind == DependencyKind::Development {
+                // Dev-deps are stripped at publish time; missing version is fine.
+                continue;
+            }
+            // `source` is `None` for path-only deps with no registry. A `req` of
+            // `*` means no version requirement was given, so cargo would refuse
+            // to verify the manifest at upload time.
+            if dep.source.is_none() && dep.req.to_string() == "*" {
+                errors.push(format!(
+                    "`{}`: dependency `{}` is path-only without a version requirement \
+                     — cargo refuses to publish (use a `version` or route through \
+                     `[workspace.dependencies]`)",
+                    pkg.name, dep.name,
+                ));
+            }
+        }
+    }
+    if errors.is_empty() {
+        return Ok(());
+    }
+    anyhow::bail!(
+        "Pre-flight validation found {} issue(s):\n  - {}",
+        errors.len(),
+        errors.join("\n  - "),
+    );
 }
 
 fn publish_failure_summary(
