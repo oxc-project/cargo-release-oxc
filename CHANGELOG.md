@@ -36,6 +36,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.41](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.40...v0.0.41) - 2026-05-22
+
+### Fixed
+
+- *(ci)* create release with binaries atomically to bypass immutable-release upload ([#239](https://github.com/oxc-project/cargo-release-oxc/pull/239))
+
+### Other
+
+- *(deps)* bump dependencies and rustls-webpki for RUSTSEC advisories ([#240](https://github.com/oxc-project/cargo-release-oxc/pull/240))
+
 ## [0.0.40](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.39...v0.0.40) - 2026-05-22
 
 ### Added
