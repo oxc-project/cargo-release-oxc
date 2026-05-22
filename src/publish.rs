@@ -48,23 +48,38 @@ impl Publish {
         let root_version = root_package.version.to_string();
 
         let packages = release_order::release_order(&packages)?;
-        let packages = packages.into_iter().map(|package| &package.name).collect::<Vec<_>>();
+        let packages: Vec<&str> =
+            packages.into_iter().map(|package| package.name.as_str()).collect();
 
-        eprintln!("Publishing packages:");
+        let total = packages.len();
+        eprintln!("Publishing {total} package(s):");
         for package in &packages {
-            eprintln!("{}", package.as_str());
+            eprintln!("  - {package}");
         }
-        for package in &packages {
+
+        let mut published: Vec<&str> = vec![];
+        let mut skipped: Vec<&str> = vec![];
+        for (idx, package) in packages.iter().enumerate() {
+            eprintln!("\n[{}/{total}] {package}", idx + 1);
+            let summary = || publish_failure_summary(package, idx, &packages, &published, &skipped);
             if self.dry_run {
                 // check each crate individually to prevent feature unification.
-                self.cargo.check(package)?;
+                self.cargo.check(package).with_context(summary)?;
             }
-            if self.skip_published(package, &root_version) {
+            if self.skip_published(package, &root_version)? {
+                skipped.push(package);
                 continue;
             }
-            self.cargo.publish(package, self.dry_run)?;
-            eprintln!("Published: {}", package.as_str());
+            self.cargo.publish(package, self.dry_run).with_context(summary)?;
+            published.push(package);
+            eprintln!("  ✓ published");
         }
+
+        eprintln!(
+            "\nDone. {} published, {} skipped (already on registry), {total} total.",
+            published.len(),
+            skipped.len(),
+        );
 
         let release_name = &self.release_set.name;
         let version = format!("{release_name}_v{root_version}");
@@ -74,23 +89,57 @@ impl Publish {
         Ok(())
     }
 
-    fn skip_published(&self, package: &str, root_version: &str) -> bool {
-        let Ok(krate) = self.client.get_crate(package) else {
-            eprintln!("Cannot get {package}");
-            return false;
-        };
-        let versions = krate.versions.into_iter().map(|version| version.num).collect::<Vec<_>>();
-        let is_already_published = versions.iter().any(|v| v == root_version);
-        if is_already_published {
-            eprintln!("Already published {package} {root_version}");
+    fn skip_published(&self, package: &str, root_version: &str) -> Result<bool> {
+        match self.client.get_crate(package) {
+            Ok(krate) => {
+                let is_already_published =
+                    krate.versions.iter().any(|version| version.num == root_version);
+                if is_already_published {
+                    eprintln!("  · already on crates.io @ {root_version}, skipping");
+                }
+                Ok(is_already_published)
+            }
+            Err(crates_io_api::Error::NotFound(_)) => {
+                // Brand-new crate, never published; not an error.
+                eprintln!("  · not yet on crates.io (new crate)");
+                Ok(false)
+            }
+            Err(err) => Err(err).with_context(|| {
+                format!(
+                    "failed to query crates.io for `{package}` — \
+                     cannot determine whether to publish or skip"
+                )
+            }),
         }
-        is_already_published
     }
 
     fn get_packages(&self) -> Vec<&Package> {
         // `publish.is_none()` means `publish = true`.
         self.metadata.workspace_packages().into_iter().filter(|p| p.publish.is_none()).collect()
     }
+}
+
+fn publish_failure_summary(
+    failed: &str,
+    failed_idx: usize,
+    all: &[&str],
+    published: &[&str],
+    skipped: &[&str],
+) -> String {
+    use std::fmt::Write;
+    let remaining = &all[failed_idx + 1..];
+    let mut out =
+        format!("publish failed at `{failed}` ({}/{} in order)", failed_idx + 1, all.len());
+    if !published.is_empty() {
+        write!(out, "\n  published before failure: {published:?}").unwrap();
+    }
+    if !skipped.is_empty() {
+        write!(out, "\n  skipped (already on registry): {skipped:?}").unwrap();
+    }
+    if !remaining.is_empty() {
+        write!(out, "\n  not attempted: {remaining:?}").unwrap();
+    }
+    out
 }
 
 mod release_order {
