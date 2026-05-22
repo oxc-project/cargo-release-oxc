@@ -4,3 +4,17 @@
 # to crates.io and pushes the tag. This avoids the immutable-release 422 that
 # blocks uploading assets after the release is published.
 git_release_enable = false
+
+[changelog]
+# Skip release-PR merge commits when regenerating the changelog so release-plz
+# doesn't open a no-op follow-up PR after each release. Defaults are
+# re-declared because commit_parsers replaces them rather than extending.
+commit_parsers = [
+  { message = "^chore: release", skip = true },
+  { message = "^feat",       group = "added" },
+  { message = "^changed",    group = "changed" },
+  { message = "^deprecated", group = "deprecated" },
+  { message = "^fix",        group = "fixed" },
+  { message = "^security",   group = "security" },
+  { message = "^.*",         group = "other" },
+]
