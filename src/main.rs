@@ -25,7 +25,7 @@ fn update(options: &Options) -> Result<()> {
 
 fn changelog(options: &Options) -> Result<()> {
     for release_name in &options.release {
-        Update::new(&options.path, release_name)?.changelog_for_release()?;
+        Update::new(&options.path, release_name)?.changelog_for_release(options)?;
     }
     Ok(())
 }

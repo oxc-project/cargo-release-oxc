@@ -27,6 +27,9 @@ pub struct Options {
     #[bpaf(switch, fallback(false))]
     pub changelog: bool,
 
+    /// For `update`: skip conventional-commit version detection and bump to this version.
+    pub version: Option<String>,
+
     /// Optional path to directory, defaults to current working directory.
     #[bpaf(positional("PATH"), fallback_with(crate::current_dir))]
     pub path: PathBuf,
