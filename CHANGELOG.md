@@ -36,6 +36,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.40](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.39...v0.0.40) - 2026-05-22
+
+### Added
+
+- *(update)* accept --version <ver> to bypass auto-detection ([#237](https://github.com/oxc-project/cargo-release-oxc/pull/237))
+- *(update)* make changelog generation opt-in via --changelog ([#236](https://github.com/oxc-project/cargo-release-oxc/pull/236))
+
+### Other
+
+- *(deps)* update crate-ci/typos action to v1.46.2 ([#235](https://github.com/oxc-project/cargo-release-oxc/pull/235))
+- *(deps)* update actions/create-github-app-token action to v3.2.0 ([#234](https://github.com/oxc-project/cargo-release-oxc/pull/234))
+- *(ci)* use ubuntu-latest for security workflow ([#233](https://github.com/oxc-project/cargo-release-oxc/pull/233))
+- *(deps)* update crate-ci/typos action to v1.46.1 ([#232](https://github.com/oxc-project/cargo-release-oxc/pull/232))
+- *(deps)* update github actions ([#231](https://github.com/oxc-project/cargo-release-oxc/pull/231))
+- *(deps)* update crate-ci/typos action to v1.46.0 ([#230](https://github.com/oxc-project/cargo-release-oxc/pull/230))
+- *(deps)* update oxc-project/security-action action to v1.0.3 ([#229](https://github.com/oxc-project/cargo-release-oxc/pull/229))
+- *(deps)* update crate-ci/typos action to v1.45.2 ([#228](https://github.com/oxc-project/cargo-release-oxc/pull/228))
+- *(deps)* update oxc-project/security-action action to v1.0.2 ([#227](https://github.com/oxc-project/cargo-release-oxc/pull/227))
+- make security analysis required-check friendly ([#226](https://github.com/oxc-project/cargo-release-oxc/pull/226))
+- *(deps)* update github-actions ([#225](https://github.com/oxc-project/cargo-release-oxc/pull/225))
+- *(deps)* update rust crate bpaf to v0.9.25 ([#224](https://github.com/oxc-project/cargo-release-oxc/pull/224))
+- add security analysis workflow ([#222](https://github.com/oxc-project/cargo-release-oxc/pull/222))
+
 ## [0.0.39](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.38...v0.0.39) - 2026-04-17
 
 ### Other
