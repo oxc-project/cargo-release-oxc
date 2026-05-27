@@ -50,30 +50,33 @@ impl Publish {
         validate_packages(&packages)?;
 
         let packages = release_order::release_order(&packages)?;
-        let packages: Vec<&str> =
-            packages.into_iter().map(|package| package.name.as_str()).collect();
+        let names: Vec<&str> = packages.iter().map(|p| p.name.as_str()).collect();
 
         let total = packages.len();
         eprintln!("Publishing {total} package(s):");
-        for package in &packages {
-            eprintln!("  - {package}");
+        for name in &names {
+            eprintln!("  - {name}");
         }
 
         let mut published: Vec<&str> = vec![];
         let mut skipped: Vec<&str> = vec![];
         for (idx, package) in packages.iter().enumerate() {
-            eprintln!("\n[{}/{total}] {package}", idx + 1);
-            let summary = || publish_failure_summary(package, idx, &packages, &published, &skipped);
+            let name = package.name.as_str();
+            // Check each package's own version: workspaces may pin crates to
+            // versions independent of the root crate.
+            let version = package.version.to_string();
+            eprintln!("\n[{}/{total}] {name}", idx + 1);
+            let summary = || publish_failure_summary(name, idx, &names, &published, &skipped);
             if self.dry_run {
                 // check each crate individually to prevent feature unification.
-                self.cargo.check(package).with_context(summary)?;
+                self.cargo.check(name).with_context(summary)?;
             }
-            if self.skip_published(package, &root_version)? {
-                skipped.push(package);
+            if self.skip_published(name, &version)? {
+                skipped.push(name);
                 continue;
             }
-            self.cargo.publish(package, self.dry_run).with_context(summary)?;
-            published.push(package);
+            self.cargo.publish(name, self.dry_run).with_context(summary)?;
+            published.push(name);
             eprintln!("  ✓ published");
         }
 
@@ -91,13 +94,12 @@ impl Publish {
         Ok(())
     }
 
-    fn skip_published(&self, package: &str, root_version: &str) -> Result<bool> {
+    fn skip_published(&self, package: &str, version: &str) -> Result<bool> {
         match self.client.get_crate(package) {
             Ok(krate) => {
-                let is_already_published =
-                    krate.versions.iter().any(|version| version.num == root_version);
+                let is_already_published = krate.versions.iter().any(|v| v.num == version);
                 if is_already_published {
-                    eprintln!("  · already on crates.io @ {root_version}, skipping");
+                    eprintln!("  · already on crates.io @ {version}, skipping");
                 }
                 Ok(is_already_published)
             }
