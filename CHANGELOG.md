@@ -36,6 +36,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.43](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.42...v0.0.43) - 2026-05-27
+
+### Fixed
+
+- *(publish)* compare each crate against its own version when checking crates.io ([#250](https://github.com/oxc-project/cargo-release-oxc/pull/250))
+- *(release-plz)* skip release commits to prevent no-op follow-up PRs ([#247](https://github.com/oxc-project/cargo-release-oxc/pull/247))
+
+### Other
+
+- *(deps)* update crate-ci/typos action to v1.46.3 ([#249](https://github.com/oxc-project/cargo-release-oxc/pull/249))
+- *(deps)* update github actions ([#248](https://github.com/oxc-project/cargo-release-oxc/pull/248))
+
 ## [0.0.42](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.41...v0.0.42) - 2026-05-22
 
 ### Added
