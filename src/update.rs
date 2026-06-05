@@ -52,7 +52,9 @@ impl Update {
 
         let release_set = ReleaseConfig::new(&cwd)?.get_release(release_name)?;
 
-        let git_cliff_repo = Repository::init(cwd.clone())?;
+        // `discover` walks up to find the repository, so this also works when the
+        // workspace is a subdirectory of the git repo (not the repo root).
+        let git_cliff_repo = Repository::discover(cwd.clone())?;
         let git_cliff_config = Config::load(&cwd.join(DEFAULT_CONFIG))?;
         let tag_pattern = regex::Regex::new(&format!("^{release_name}_v[0-9]*"))
             .context("failed to make regex")?;
