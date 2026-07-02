@@ -36,6 +36,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.44](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.43...v0.0.44) - 2026-07-02
+
+### Other
+
+- configure clippy exported api lint ([#265](https://github.com/oxc-project/cargo-release-oxc/pull/265))
+- add crates environment to release workflow
+- *(deps)* update rust crate anyhow to v1.0.103 ([#263](https://github.com/oxc-project/cargo-release-oxc/pull/263))
+- *(deps)* update oxc-project/security-action action to v1.0.8 ([#262](https://github.com/oxc-project/cargo-release-oxc/pull/262))
+- add autofix workflow ([#261](https://github.com/oxc-project/cargo-release-oxc/pull/261))
+- *(deps)* update rust crates to v1.12.4 ([#260](https://github.com/oxc-project/cargo-release-oxc/pull/260))
+- *(deps)* update typos to v1.47.2 ([#259](https://github.com/oxc-project/cargo-release-oxc/pull/259))
+- *(deps)* update typos to v1.47.1 ([#258](https://github.com/oxc-project/cargo-release-oxc/pull/258))
+- *(deps)* update crate-ci/typos action to v1.47.0 ([#256](https://github.com/oxc-project/cargo-release-oxc/pull/256))
+- *(deps)* update rust crate toml_edit to v0.25.12 ([#255](https://github.com/oxc-project/cargo-release-oxc/pull/255))
+- *(deps)* update github actions ([#254](https://github.com/oxc-project/cargo-release-oxc/pull/254))
+- *(deps)* update dependency rust to v1.96.0 ([#253](https://github.com/oxc-project/cargo-release-oxc/pull/253))
+- bump oxc-project/security-action to v1.0.7 ([#252](https://github.com/oxc-project/cargo-release-oxc/pull/252))
+
 ## [0.0.43](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.42...v0.0.43) - 2026-05-27
 
 ### Fixed
