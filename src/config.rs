@@ -73,7 +73,7 @@ impl ReleaseSet {
     }
 
     pub fn commits_range(&self, version: &str) -> String {
-        format!("{}_v{version}..HEAD", &self.name)
+        format!("{}_v{version}..HEAD", self.name)
     }
 }
 
