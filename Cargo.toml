@@ -9,6 +9,7 @@ keywords    = []
 categories  = []
 license     = "MIT"
 readme      = "README.md"
+include = ["src/**/*", "README.md", "CHANGELOG.md"]
 
 [lints.clippy]
 all                         = { level = "warn", priority = -1 }
