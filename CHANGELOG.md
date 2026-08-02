@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.45](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.44...v0.0.45) - 2026-08-02
+
+### Other
+
+- update Cargo.lock dependencies
+
 ## [0.0.44](https://github.com/oxc-project/cargo-release-oxc/compare/v0.0.43...v0.0.44) - 2026-07-26
 
 ### Other
