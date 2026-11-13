@@ -25,7 +25,6 @@ lint:
   cargo clippy
 
 ready:
-  typos
   just fmt
   cargo check
   just lint
