@@ -66,6 +66,16 @@ impl Update {
             .map(|(sha, tag)| GitTag::new(sha, tag.name))
             .collect::<Result<Vec<_>>>()?;
         let current_version = tags.last().map(|t| t.version.clone());
+
+        let packages = release_set.versioned_packages();
+        for dir in release_set.changelog_includes.keys() {
+            if !packages.iter().any(|package| package.dir == cwd.join(dir)) {
+                anyhow::bail!(
+                    "`changelog_includes` key `{}` is not a package of release `{release_name}`",
+                    dir.display()
+                );
+            }
+        }
         Ok(Self { cwd, release_set, git_cliff_repo, git_cliff_config, tags, current_version })
     }
 
@@ -87,7 +97,10 @@ impl Update {
     pub fn run(&self, options: &Options) -> Result<()> {
         let next_version = self.next_version(options)?;
         if options.changelog {
-            self.print_changelog_for_release(&next_version)?;
+            let changelog = self.print_changelog_for_release(&next_version)?;
+            if let Some(path) = &self.release_set.changelog {
+                self.save_combined_changelog(path, &changelog)?;
+            }
         }
         self.write_version_file(&next_version)?;
         if options.changelog {
@@ -145,10 +158,16 @@ impl Update {
         package: &VersionedPackage,
         commits_range: &str,
     ) -> Result<Vec<Commit<'_>>> {
-        let include_path = self.get_include_pattern(package)?;
+        let mut include_paths = vec![self.get_include_pattern(package)?];
+        let package_dir = package.dir.strip_prefix(&self.cwd)?;
+        if let Some(includes) = self.release_set.changelog_includes.get(package_dir) {
+            for include in includes {
+                include_paths.push(Self::include_pattern(include)?);
+            }
+        }
         let commits = self
             .git_cliff_repo
-            .commits(Some(commits_range), Some(vec![include_path]), None, true)?
+            .commits(Some(commits_range), Some(include_paths), None, true)?
             .iter()
             .map(Commit::from)
             .collect::<Vec<_>>();
@@ -156,9 +175,13 @@ impl Update {
     }
 
     fn get_include_pattern(&self, package: &VersionedPackage) -> Result<glob::Pattern> {
-        let path = &package.dir;
-        let include_path = path.strip_prefix(&self.cwd)?.to_string_lossy();
-        glob::Pattern::new(&format!("{include_path}/**")).context("pattern failed")
+        Self::include_pattern(package.dir.strip_prefix(&self.cwd)?)
+    }
+
+    /// `dir` is relative to the repository root.
+    fn include_pattern(dir: &Path) -> Result<glob::Pattern> {
+        let dir = dir.to_string_lossy();
+        glob::Pattern::new(&format!("{dir}/**")).context("pattern failed")
     }
 
     #[allow(clippy::cast_possible_wrap)]
@@ -181,6 +204,12 @@ impl Update {
             version: Some(next_version.to_string()),
             commits,
             timestamp: Some(timestamp),
+            // git-cliff drops a release without commits unless the previous release has no
+            // commits either and `changelog.render_always` is set (git-cliff's default).
+            // Provide an empty previous release so every package gets an entry for every
+            // version, even when no commit touched it. The body template decides what an
+            // empty release looks like; set `render_always = false` to skip them instead.
+            previous: Some(Box::new(Release::default())),
             ..Release::default()
         })
     }
@@ -203,7 +232,11 @@ impl Update {
     ) -> Result<()> {
         let commits_range = self.release_set.commits_range(self.current_version()?);
         let commits = self.get_commits_for_package(package, &commits_range)?;
-        let release = self.get_git_cliff_release(commits, next_version, None)?;
+        let mut release = self.get_git_cliff_release(commits, next_version, None)?;
+        // Let the body template link each package entry to the combined changelog.
+        if let Some(path) = &self.release_set.changelog {
+            release.extra = Some(serde_json::json!({ "changelog": path }));
+        }
         let mut config = self.git_cliff_config.clone();
         config.changelog.footer = None;
         let changelog = Changelog::new(vec![release], config, None)?;
@@ -228,7 +261,41 @@ impl Update {
         Ok(commits)
     }
 
-    fn print_changelog_for_release(&self, next_version: &str) -> Result<()> {
+    /// Prepend the changes of the whole release to the combined changelog.
+    ///
+    /// Everything above the first release heading is owned by this tool and regenerated,
+    /// so the list of package changelogs stays up to date.
+    fn save_combined_changelog(&self, path: &Path, entry: &str) -> Result<()> {
+        use std::fmt::Write;
+
+        let changelog_path = self.cwd.join(path);
+        let prev = fs::read_to_string(&changelog_path).unwrap_or_default();
+        let prev_entries = if prev.starts_with("## ") {
+            prev.as_str()
+        } else {
+            prev.find("\n## ").map_or("", |i| &prev[i + 1..])
+        };
+
+        let mut out = format!(
+            "# Changelog\n\nAll notable changes to the `{}` release will be documented in this file.\n\n\
+             Each package has its own changelog with only the changes relevant to it:\n\n",
+            self.release_set.name
+        );
+        for package in self.release_set.versioned_packages() {
+            let dir = package.dir.strip_prefix(&self.cwd)?;
+            // A leading `/` is resolved from the repository root.
+            writeln!(out, "- [{}](/{}/{CHANGELOG_NAME})", package.name, dir.display())?;
+        }
+        out.push('\n');
+        out.push_str(entry.trim());
+        out.push_str("\n\n");
+        out.push_str(prev_entries);
+        fs::write(changelog_path, out)?;
+        Ok(())
+    }
+
+    /// Returns the changelog entry of the whole release, including its version heading.
+    fn print_changelog_for_release(&self, next_version: &str) -> Result<String> {
         let commits = self.get_commits_for_release()?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut git_cliff_config = self.git_cliff_config.clone();
@@ -239,11 +306,11 @@ impl Update {
         changelog.generate(&mut s).context("failed to generate changelog")?;
         let var = format!("{}_CHANGELOG", self.release_set.name.to_uppercase());
         let file = Path::new("./target").join(var);
-        let output = String::from_utf8(s).unwrap();
+        let entry = String::from_utf8(s).unwrap();
         // remove the header date
-        let output = output.split_once("\n\n").map_or_else(|| output.as_str(), |s| s.1).trim();
+        let output = entry.split_once("\n\n").map_or_else(|| entry.as_str(), |s| s.1).trim();
         fs::write(file, output)?;
-        Ok(())
+        Ok(entry)
     }
 
     pub fn regenerate_changelogs(&self) -> Result<()> {

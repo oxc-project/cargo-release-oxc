@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
 };
@@ -48,6 +49,21 @@ pub struct ReleaseSet {
     pub root_crate: Option<String>,
 
     pub scopes_for_breaking_change: Option<Vec<String>>,
+
+    /// Path of the combined changelog for this release, relative to the repository root.
+    ///
+    /// When set, `update --changelog` prepends the changes of the whole release to this file,
+    /// and exposes the path to the changelog body template as `extra.changelog`
+    /// so each package changelog can link to it.
+    pub changelog: Option<PathBuf>,
+
+    /// Extra paths whose commits are included in a package's changelog,
+    /// keyed by package directory. Paths are relative to the repository root.
+    ///
+    /// For packages that are thin wrappers around other packages, e.g. a napi binding
+    /// whose behavior is implemented in crates.
+    #[serde(default)]
+    pub changelog_includes: BTreeMap<PathBuf, Vec<PathBuf>>,
 
     versioned_files: Vec<VersionedFile>,
 }
