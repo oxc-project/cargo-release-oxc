@@ -68,6 +68,17 @@ impl Update {
         let current_version = tags.last().map(|t| t.version.clone());
 
         let packages = release_set.versioned_packages();
+        if let Some(path) = &release_set.changelog {
+            let path = cwd.join(path);
+            // Both would be prepended to the same file, duplicating every version.
+            if let Some(package) = packages.iter().find(|p| p.dir.join(CHANGELOG_NAME) == path) {
+                anyhow::bail!(
+                    "`changelog` of release `{release_name}` is the changelog of package `{}`, \
+                     choose a different path",
+                    package.name
+                );
+            }
+        }
         for dir in release_set.changelog_includes.keys() {
             if !packages.iter().any(|package| package.dir == cwd.join(dir)) {
                 anyhow::bail!(
@@ -128,7 +139,7 @@ impl Update {
 
     fn calculate_next_version(&self) -> Result<String> {
         let mut commits = self
-            .get_commits_for_release()?
+            .get_commits_for_release(/* with_changelog_includes */ false)?
             .into_iter()
             .filter_map(|c| c.into_conventional().ok())
             .collect::<Vec<_>>();
@@ -244,14 +255,22 @@ impl Update {
         Ok(())
     }
 
-    fn get_commits_for_release(&self) -> Result<Vec<Commit<'_>>> {
+    /// `with_changelog_includes`: also return commits of the `changelog_includes` paths,
+    /// so every commit listed in a package changelog is listed in the release changelog,
+    /// even when the included path is not a versioned package.
+    fn get_commits_for_release(&self, with_changelog_includes: bool) -> Result<Vec<Commit<'_>>> {
         let release_set = &self.release_set;
         let commits_range = release_set.commits_range(self.current_version()?);
-        let include_paths = release_set
+        let mut include_paths = release_set
             .versioned_packages()
             .iter()
             .map(|package| self.get_include_pattern(package))
             .collect::<Result<Vec<_>>>()?;
+        if with_changelog_includes {
+            for include in release_set.changelog_includes.values().flatten() {
+                include_paths.push(Self::include_pattern(include)?);
+            }
+        }
         let commits = self
             .git_cliff_repo
             .commits(Some(&commits_range), Some(include_paths), None, true)?
@@ -296,7 +315,7 @@ impl Update {
 
     /// Returns the changelog entry of the whole release, including its version heading.
     fn print_changelog_for_release(&self, next_version: &str) -> Result<String> {
-        let commits = self.get_commits_for_release()?;
+        let commits = self.get_commits_for_release(/* with_changelog_includes */ true)?;
         let release = self.get_git_cliff_release(commits, next_version, None)?;
         let mut git_cliff_config = self.git_cliff_config.clone();
         git_cliff_config.changelog.header = None;
