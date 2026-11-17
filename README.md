@@ -41,6 +41,33 @@ versioned_files = [
 ]
 ```
 
+### Changelogs
+
+`update --changelog` writes a `CHANGELOG.md` next to every versioned package,
+with the commits that touched the package directory.
+
+```toml
+[[releases]]
+name = "crates"
+versioned_files = ["Cargo.toml", "napi/parser/package.json"]
+
+# Also write the changes of the whole release to one combined changelog.
+# The path is exposed to the `cliff.toml` body template as `extra.changelog`,
+# so package changelogs can link to it.
+changelog = "crates/CHANGELOG.md"
+
+# Include commits from other paths in a package's changelog,
+# for packages that are thin wrappers around other packages.
+[releases.changelog_includes]
+"napi/parser" = ["crates/oxc_parser", "crates/oxc_ast"]
+```
+
+In the combined changelog, everything above the `<!-- cargo-release-oxc: releases -->` marker
+is regenerated on every release.
+
+A package gets an entry for every version, even when no commit touched it;
+the body template decides what an entry without commits looks like.
+
 ## Output
 
 Saves two files to `./target`:
