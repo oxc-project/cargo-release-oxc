@@ -20,9 +20,10 @@ pub struct ReleaseConfig {
 
 impl ReleaseConfig {
     pub fn new(cwd: &Path) -> Result<Self> {
-        let s =
-            fs::read_to_string(cwd.join(RELEASE_CONFIG)).context("failed to read release.toml")?;
-        let mut config: Self = toml::from_str(&s).context("failed to parse release.toml")?;
+        let s = fs::read_to_string(cwd.join(RELEASE_CONFIG))
+            .with_context(|| format!("failed to read {RELEASE_CONFIG}"))?;
+        let mut config: Self =
+            toml::from_str(&s).with_context(|| format!("failed to parse {RELEASE_CONFIG}"))?;
         for release_set in &mut config.release_sets {
             for versioned_file in &mut release_set.versioned_files {
                 versioned_file.content = VersionedContent::read(&cwd.join(&versioned_file.path))?;
@@ -32,12 +33,10 @@ impl ReleaseConfig {
     }
 
     pub fn get_release(self, release_name: &str) -> Result<ReleaseSet> {
-        match self.release_sets.into_iter().find(|r| r.name == release_name) {
-            Some(release_set) => Ok(release_set),
-            _ => {
-                anyhow::bail!("release {release_name} not found");
-            }
-        }
+        self.release_sets
+            .into_iter()
+            .find(|r| r.name == release_name)
+            .with_context(|| format!("release {release_name} not found in {RELEASE_CONFIG}"))
     }
 }
 

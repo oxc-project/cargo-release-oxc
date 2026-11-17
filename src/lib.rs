@@ -5,6 +5,7 @@ mod update;
 mod versioning;
 
 use std::{
+    fs,
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -17,6 +18,7 @@ pub use self::{publish::Publish, update::Update};
 #[derive(Debug, Clone, Bpaf)]
 pub struct Options {
     /// Select the release specified in `oxc_release.toml`.
+    #[bpaf(argument("NAME"))]
     pub release: Vec<String>,
 
     /// Run `cargo publish` with `--dry-run`
@@ -28,6 +30,7 @@ pub struct Options {
     pub changelog: bool,
 
     /// For `update`: skip conventional-commit version detection and bump to this version.
+    #[bpaf(argument("VERSION"))]
     pub version: Option<String>,
 
     /// Optional path to directory, defaults to current working directory.
@@ -57,6 +60,13 @@ pub enum ReleaseCommand {
 
 fn current_dir() -> Result<PathBuf, String> {
     std::env::current_dir().map_err(|err| format!("{err:?}"))
+}
+
+/// Write `./target/{RELEASE}_{suffix}` for CI to pick up.
+fn write_target_file(release_name: &str, suffix: &str, contents: &str) -> Result<()> {
+    let file = Path::new("./target").join(format!("{}_{suffix}", release_name.to_uppercase()));
+    fs::write(file, contents)?;
+    Ok(())
 }
 
 pub fn check_git_clean(path: &Path) -> Result<()> {

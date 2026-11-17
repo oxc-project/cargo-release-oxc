@@ -9,14 +9,27 @@ Available options:
     -h, --help             Prints help information
 
 Available commands:
-    update                 Generate CHANGELOG.md and bump versions for all published packages.
+    update                 Bump versions for all published packages. Pass --changelog to also write
+                           CHANGELOG.md.
     changelog              Generate changelog summary.
     regenerate-changelogs  Regenerate CHANGELOG.md for all published packages.
     publish                Publish all `versioned_files` specified in `oxc_release.toml`.
+```
+
+Every command takes the same options:
+
+```
+Usage: cargo-release-oxc update [--release=NAME]... [--dry-run] [--changelog] [--version=VERSION] [PATH]
+
+Available positional items:
+    PATH                   Optional path to directory, defaults to current working directory.
 
 Available options:
-    --release=NAME         Select the release specified in `oxc_release.toml`.
-    --dry-run              Run `cargo publish` with `--dry-run`
+        --release=NAME     Select the release specified in `oxc_release.toml`.
+        --dry-run          Run `cargo publish` with `--dry-run`
+        --changelog        For `update`: also write CHANGELOG.md files alongside the version bump.
+        --version=VERSION  For `update`: skip conventional-commit version detection and bump to this
+                           version.
 ```
 
 ## Specify `oxc_release.toml`
