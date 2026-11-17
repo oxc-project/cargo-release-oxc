@@ -15,6 +15,8 @@ type RawJson = serde_json::Map<String, Value>;
 pub struct PackageJson {
     path: PathBuf,
 
+    name: String,
+
     raw: RefCell<RawJson>,
 }
 
@@ -24,12 +26,17 @@ impl PackageJson {
             .with_context(|| format!("failed to read {}", path.display()))?;
         let raw: RawJson = serde_json::from_str(&content)
             .with_context(|| format!("failed to parse {}", path.display()))?;
-        Ok(Self { path: path.to_path_buf(), raw: RefCell::new(raw) })
+        let name = raw
+            .get("name")
+            .and_then(Value::as_str)
+            .with_context(|| format!("`name` field not found: {}", path.display()))?
+            .to_string();
+        Ok(Self { path: path.to_path_buf(), name, raw: RefCell::new(raw) })
     }
 
     pub fn packages(&self) -> Vec<VersionedPackage> {
         vec![VersionedPackage {
-            name: self.raw.borrow().get("name").unwrap().as_str().unwrap().to_string(),
+            name: self.name.clone(),
             dir: self.path.parent().unwrap().to_path_buf(),
             path: self.path.clone(),
         }]

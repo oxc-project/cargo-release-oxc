@@ -27,15 +27,12 @@ struct GitTag {
 }
 
 impl GitTag {
-    fn new(sha: String, tag: String) -> Result<Self> {
-        let version = if tag.contains('v') {
-            tag.split_once('v')
-                .with_context(|| format!("tag {tag} does not have a `v`"))?
-                .1
-                .to_string()
-        } else {
-            tag
-        };
+    /// `tag` is `{prefix}{version}`, where `prefix` is `{release_name}_v`.
+    fn new(sha: String, tag: &str, prefix: &str) -> Result<Self> {
+        let version = tag
+            .strip_prefix(prefix)
+            .with_context(|| format!("tag {tag} does not start with `{prefix}`"))?
+            .to_string();
         Ok(Self { version, sha })
     }
 }
@@ -57,7 +54,8 @@ impl Update {
 
         let git_cliff_repo = Repository::init(cwd.clone())?;
         let git_cliff_config = Config::load(&cwd.join(DEFAULT_CONFIG))?;
-        let tag_pattern = regex::Regex::new(&format!("^{release_name}_v[0-9]*"))
+        let tag_prefix = format!("{release_name}_v");
+        let tag_pattern = regex::Regex::new(&format!("^{}[0-9]*", regex::escape(&tag_prefix)))
             .context("failed to make regex")?;
         let tags = git_cliff_repo
             .tags(
@@ -66,7 +64,7 @@ impl Update {
                 /* include only the tags that belong to the current branch. */ false,
             )?
             .into_iter()
-            .map(|(sha, tag)| GitTag::new(sha, tag.name))
+            .map(|(sha, tag)| GitTag::new(sha, &tag.name, &tag_prefix))
             .collect::<Result<Vec<_>>>()?;
         let current_version = tags.last().map(|t| t.version.clone());
 
@@ -126,18 +124,14 @@ impl Update {
         Ok(())
     }
 
-    pub fn changelog_for_release(&self, options: &Options) -> Result<String> {
+    pub fn changelog_for_release(&self, options: &Options) -> Result<()> {
         let next_version = self.next_version(options)?;
         self.print_changelog_for_release(&next_version)?;
-        self.write_version_file(&next_version)?;
-        Ok(next_version)
+        self.write_version_file(&next_version)
     }
 
     fn write_version_file(&self, next_version: &str) -> Result<()> {
-        let var = format!("{}_VERSION", self.release_set.name.to_uppercase());
-        let file = Path::new("./target").join(var);
-        fs::write(file, next_version)?;
-        Ok(())
+        crate::write_target_file(&self.release_set.name, "VERSION", next_version)
     }
 
     fn calculate_next_version(&self) -> Result<String> {
@@ -183,12 +177,20 @@ impl Update {
         for include in includes {
             include_paths.push(Self::include_pattern(include)?);
         }
+        self.commits(commits_range, include_paths)
+    }
+
+    fn commits(
+        &self,
+        commits_range: &str,
+        include_paths: Vec<glob::Pattern>,
+    ) -> Result<Vec<Commit<'_>>> {
         let commits = self
             .git_cliff_repo
             .commits(Some(commits_range), Some(include_paths), None, true)?
             .iter()
             .map(Commit::from)
-            .collect::<Vec<_>>();
+            .collect();
         Ok(commits)
     }
 
@@ -203,7 +205,6 @@ impl Update {
         glob::Pattern::new(&format!("{dir}/**")).context("pattern failed")
     }
 
-    #[allow(clippy::cast_possible_wrap)]
     fn get_git_cliff_release<'a>(
         &self,
         commits: Vec<Commit<'a>>,
@@ -211,7 +212,7 @@ impl Update {
         sha: Option<&str>,
     ) -> Result<Release<'a>> {
         let timestamp = match sha {
-            None => SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64,
+            None => i64::try_from(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs())?,
             Some(sha) => self
                 .git_cliff_repo
                 .find_commit(sha)
@@ -279,13 +280,7 @@ impl Update {
                 include_paths.push(Self::include_pattern(include)?);
             }
         }
-        let commits = self
-            .git_cliff_repo
-            .commits(Some(&commits_range), Some(include_paths), None, true)?
-            .iter()
-            .map(Commit::from)
-            .collect::<Vec<_>>();
-        Ok(commits)
+        self.commits(&commits_range, include_paths)
     }
 
     /// Prepend the changes of the whole release to the combined changelog.
@@ -334,12 +329,10 @@ impl Update {
         let changelog = Changelog::new(vec![release], git_cliff_config, None)?;
         let mut s = vec![];
         changelog.generate(&mut s).context("failed to generate changelog")?;
-        let var = format!("{}_CHANGELOG", self.release_set.name.to_uppercase());
-        let file = Path::new("./target").join(var);
-        let entry = String::from_utf8(s).unwrap();
+        let entry = String::from_utf8(s).context("changelog is not valid UTF-8")?;
         // remove the header date
-        let output = entry.split_once("\n\n").map_or_else(|| entry.as_str(), |s| s.1).trim();
-        fs::write(file, output)?;
+        let output = entry.split_once("\n\n").map_or(entry.as_str(), |s| s.1).trim();
+        crate::write_target_file(&self.release_set.name, "CHANGELOG", output)?;
         Ok(entry)
     }
 
@@ -351,8 +344,7 @@ impl Update {
                 let to = &pair[1];
                 let commits_range = format!("{}..{}", from.sha, to.sha);
                 let commits = self.get_commits_for_package(&package, &commits_range)?;
-                let release =
-                    self.get_git_cliff_release(commits, &to.version.clone(), Some(&to.sha))?;
+                let release = self.get_git_cliff_release(commits, &to.version, Some(&to.sha))?;
                 releases.push(release);
             }
             let changelog = Changelog::new(releases, self.git_cliff_config.clone(), None)?;

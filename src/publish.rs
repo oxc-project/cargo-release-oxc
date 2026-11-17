@@ -1,8 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-    time::Duration,
-};
+use std::{path::Path, time::Duration};
 
 use anyhow::{Context, Result};
 use cargo_metadata::{DependencyKind, Metadata, MetadataCommand, Package};
@@ -22,7 +18,7 @@ pub struct Publish {
 }
 
 impl Publish {
-    pub fn new(cwd: &PathBuf, release_name: &str, dry_run: bool) -> Result<Self> {
+    pub fn new(cwd: &Path, release_name: &str, dry_run: bool) -> Result<Self> {
         let release_set = ReleaseConfig::new(cwd)?.get_release(release_name)?;
 
         let metadata = MetadataCommand::new().current_dir(cwd).no_deps().exec()?;
@@ -87,11 +83,11 @@ impl Publish {
         );
 
         let release_name = &self.release_set.name;
-        let version = format!("{release_name}_v{root_version}");
-        let var = format!("{}_VERSION", release_name.to_uppercase());
-        let file = Path::new("./target").join(var);
-        fs::write(file, version)?;
-        Ok(())
+        crate::write_target_file(
+            release_name,
+            "VERSION",
+            &format!("{release_name}_v{root_version}"),
+        )
     }
 
     fn skip_published(&self, package: &str, version: &str) -> Result<bool> {
