@@ -62,6 +62,9 @@ changelog = "crates/CHANGELOG.md"
 "napi/parser" = ["crates/oxc_parser", "crates/oxc_ast"]
 ```
 
+In the combined changelog, everything above the `<!-- cargo-release-oxc: releases -->` marker
+is regenerated on every release.
+
 A package gets an entry for every version, even when no commit touched it;
 the body template decides what an entry without commits looks like.
 

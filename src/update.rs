@@ -17,6 +17,9 @@ use crate::{
 
 const CHANGELOG_NAME: &str = "CHANGELOG.md";
 
+/// Separates the generated header of a combined changelog from its release entries.
+const COMBINED_CHANGELOG_MARKER: &str = "<!-- cargo-release-oxc: releases -->";
+
 #[derive(Debug, Clone)]
 struct GitTag {
     version: String,
@@ -170,11 +173,15 @@ impl Update {
         commits_range: &str,
     ) -> Result<Vec<Commit<'_>>> {
         let mut include_paths = vec![self.get_include_pattern(package)?];
-        let package_dir = package.dir.strip_prefix(&self.cwd)?;
-        if let Some(includes) = self.release_set.changelog_includes.get(package_dir) {
-            for include in includes {
-                include_paths.push(Self::include_pattern(include)?);
-            }
+        // Compare joined paths, so a key spelled `./napi/parser` matches like in `Update::new`.
+        let includes = self
+            .release_set
+            .changelog_includes
+            .iter()
+            .filter(|(dir, _)| self.cwd.join(dir) == package.dir)
+            .flat_map(|(_, includes)| includes);
+        for include in includes {
+            include_paths.push(Self::include_pattern(include)?);
         }
         let commits = self
             .git_cliff_repo
@@ -191,7 +198,8 @@ impl Update {
 
     /// `dir` is relative to the repository root.
     fn include_pattern(dir: &Path) -> Result<glob::Pattern> {
-        let dir = dir.to_string_lossy();
+        // Paths reported by git never start with `./`.
+        let dir = dir.strip_prefix(".").unwrap_or(dir).to_string_lossy();
         glob::Pattern::new(&format!("{dir}/**")).context("pattern failed")
     }
 
@@ -282,18 +290,19 @@ impl Update {
 
     /// Prepend the changes of the whole release to the combined changelog.
     ///
-    /// Everything above the first release heading is owned by this tool and regenerated,
-    /// so the list of package changelogs stays up to date.
+    /// Everything above [`COMBINED_CHANGELOG_MARKER`] is owned by this tool and regenerated,
+    /// so the list of package changelogs stays up to date. A file without the marker is
+    /// kept as is below the new entry: the body template is free to render any heading,
+    /// so headings cannot be used to tell the header from the entries.
     fn save_combined_changelog(&self, path: &Path, entry: &str) -> Result<()> {
         use std::fmt::Write;
 
         let changelog_path = self.cwd.join(path);
         let prev = fs::read_to_string(&changelog_path).unwrap_or_default();
-        let prev_entries = if prev.starts_with("## ") {
-            prev.as_str()
-        } else {
-            prev.find("\n## ").map_or("", |i| &prev[i + 1..])
-        };
+        let prev_entries = prev
+            .split_once(COMBINED_CHANGELOG_MARKER)
+            .map_or(prev.as_str(), |(_, entries)| entries)
+            .trim_start();
 
         let mut out = format!(
             "# Changelog\n\nAll notable changes to the `{}` release will be documented in this file.\n\n\
@@ -306,6 +315,8 @@ impl Update {
             writeln!(out, "- [{}](/{}/{CHANGELOG_NAME})", package.name, dir.display())?;
         }
         out.push('\n');
+        out.push_str(COMBINED_CHANGELOG_MARKER);
+        out.push_str("\n\n");
         out.push_str(entry.trim());
         out.push_str("\n\n");
         out.push_str(prev_entries);
